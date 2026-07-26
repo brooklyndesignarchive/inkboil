@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ink Boil · Doodle Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E9E7DF; --panel:#F4F2EC; --ink:#17171B;
+    --blue:#2E6389; --blue-line:#9CCADD;
+    --line:rgba(23,23,27,0.14); --line-soft:rgba(23,23,27,0.07);
+    --mono:'Space Mono',ui-monospace,monospace;
+    --sans:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  .wrap{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:28px 24px 40px;display:flex;flex-direction:column;gap:22px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px;flex-wrap:wrap}
+  .title{font-weight:700;font-size:26px;letter-spacing:-0.02em;display:flex;align-items:baseline;gap:12px}
+  .title .mark{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--blue-line);border:2px solid var(--blue);transform:translateY(1px)}
+  .title a{color:inherit;text-decoration:none}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue)}
+  a.tag{text-decoration:none}
+  a.tag:hover{text-decoration:underline}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .card .art{background:conic-gradient(from 0deg,#e6e4dc 0 25%,#f4f2ec 0 50%,#e6e4dc 0 75%,#f4f2ec 0) 0 0/20px 20px;border:1px solid var(--line-soft);border-radius:2px;display:flex;align-items:center;justify-content:center;min-height:180px;overflow:hidden}
+  .card img{max-width:100%;max-height:260px;display:block}
+  .card .who{font-family:var(--mono);font-size:11px;color:rgba(23,23,27,0.6);display:flex;justify-content:space-between;gap:8px}
+  .card .who b{color:var(--ink)}
+  .empty{font-family:var(--mono);font-size:12px;color:rgba(23,23,27,0.5);text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:2px;line-height:1.8}
+  footer{font-family:var(--mono);font-size:10.5px;color:rgba(23,23,27,0.4);text-align:center;padding-bottom:8px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title"><span class="mark"></span><a href="/">Ink Boil</a> · Doodle Wall</div>
+    <a class="tag" href="/">← make your own</a>
+  </header>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">Nothing on the wall yet.<br>Draw something, boil it, and hit “Submit to wall”.</div>
+  <footer>Every doodle here was drawn by hand, scanned, and boiled.</footer>
+</div>
+<script>
+(async () => {
+  const grid=document.getElementById('grid'), empty=document.getElementById('empty');
+  try{
+    const r=await fetch('/api/wall'); const {items=[]}=await r.json();
+    if(!items.length){ empty.style.display='block'; return; }
+    for(const it of items){
+      const card=document.createElement('div'); card.className='card';
+      const art=document.createElement('div'); art.className='art';
+      const img=document.createElement('img'); img.src=it.gifUrl; img.alt=it.name?`Doodle by ${it.name}`:'Doodle';
+      img.loading='lazy';
+      art.appendChild(img); card.appendChild(art);
+      const who=document.createElement('div'); who.className='who';
+      const nm=document.createElement('span'); nm.innerHTML=it.name?`<b></b>`:'<b>anonymous</b>';
+      if(it.name) nm.querySelector('b').textContent=it.name;
+      const loc=document.createElement('span'); loc.textContent=it.location||'';
+      who.appendChild(nm); who.appendChild(loc); card.appendChild(who);
+      grid.appendChild(card);
+    }
+  }catch(e){ empty.style.display='block'; empty.textContent='Could not load the wall right now.'; }
+})();
+</script>
+</body>
+</html>

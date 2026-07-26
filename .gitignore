@@ -1,0 +1,4 @@
+.mock-blob/
+node_modules/
+.vercel/
+.DS_Store
