@@ -254,17 +254,18 @@
       bgNeutral = bgSat < 22;
       const w = Math.min(1, Math.max(0,(bgSat-16)/24));   // 0 neutral bg … 1 coloured bg
       // brightness path — pixels darker than the (bright) ground = subject
-      const clearL=bgLum-8, solidL=Math.max(40,clearL-55-s*30), spanL=Math.max(1,clearL-solidL);
+      const clearL=bgLum-8, solidL=Math.max(40,clearL-42-s*30), spanL=Math.max(1,clearL-solidL);
       // colour path — pixels unlike the ground's hue = subject
       const nearC=26+s*22, farC=nearC+40, spanC=farC-nearC;
-      const crisp=(0.30+s*0.60)*(1-w);    // only crispen ink in the line-art case
+      const crisp=(0.35+s*0.55)*(1-w);    // only crispen ink in the line-art case
       for(let i=0;i<d.length;i+=4){
         const r=d[i],g=d[i+1],b=d[i+2];
         const L=0.299*r+0.587*g+0.114*b;
         let aL=(clearL-L)/spanL; aL=aL<0?0:aL>1?1:aL;
         const dCb=(r-g)-bgCb, dCr=(g-b)-bgCr, dchr=Math.sqrt(dCb*dCb+dCr*dCr);
         let aC=(dchr-nearC)/spanC; aC=aC<0?0:aC>1?1:aC;
-        const a=(1-w)*aL + w*aC;
+        let a=(1-w)*aL + w*aC;
+        if(a>0&&a<1) a=Math.pow(a,0.5);   // push faint ink toward solid; edges stay soft
         d[i+3]=Math.round(a*255);
         if(a>0 && crisp>0){
           const pull=crisp*(1-L/255);
