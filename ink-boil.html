@@ -107,7 +107,7 @@
         <div class="drop" id="drop">
           <div class="ring">+</div>
           <h2>Drop drawings here</h2>
-          <p>One or several. PNG or JPG — scans welcome. Line art on white works best; leave a little margin so the ink has room to boil.</p>
+          <p>One or several. PNG or JPG. Ink on white, or a photo of art on a table — it lifts the subject off its background either way. Leave a little margin so the edges can boil.</p>
         </div>
       </div>
       <div class="tray" id="tray"></div>
@@ -195,7 +195,7 @@
 
   const queue = [];
   let activeIndex = -1;
-  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false;
+  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false, bgNeutral = true;
   let frames = [], frameIdx = 0;
   let playing = false, busy = false, rafId = null, lastStep = 0;
   let regenToken = 0;
@@ -236,25 +236,42 @@
       }
     }
 
-    // (b) knock the paper out. Ink stays fully opaque; only the near-white
-    //     range ramps to transparent, so lines never wash out. Always on.
+    // (b) remove the background. Instead of assuming "bright = background",
+    //     we LEARN the background colour from the border ring (almost always
+    //     background) and delete whatever matches it — keying on COLOUR when
+    //     the ground is coloured (paper on wood) and on BRIGHTNESS when it's
+    //     neutral (dark ink on white paper). Always on.
     if(!hadAlpha){
-      const clear = 250 - s*30;            // lum >= clear  -> fully transparent (paper)
-      const solid = Math.max(60, clear-58-s*30); // lum <= solid -> fully opaque (ink)
-      const span  = Math.max(1, clear-solid);
-      const crisp = 0.30 + s*0.60;         // deepen ink as Clean-up rises
+      let br=0,bg2=0,bb=0,bn=0;
+      const band=Math.max(2,Math.round(Math.min(W,H)*0.045));
+      const acc=(xx,yy)=>{const i=(yy*W+xx)*4;br+=d[i];bg2+=d[i+1];bb+=d[i+2];bn++;};
+      for(let xx=0;xx<W;xx+=2) for(let t=0;t<band;t++){ acc(xx,t); acc(xx,H-1-t); }
+      for(let yy=0;yy<H;yy+=2) for(let t=0;t<band;t++){ acc(t,yy); acc(W-1-t,yy); }
+      br/=bn; bg2/=bn; bb/=bn;
+      const bgLum=0.299*br+0.587*bg2+0.114*bb;
+      const bgCb=br-bg2, bgCr=bg2-bb;
+      const bgSat=Math.max(br,bg2,bb)-Math.min(br,bg2,bb);
+      bgNeutral = bgSat < 22;
+      const w = Math.min(1, Math.max(0,(bgSat-16)/24));   // 0 neutral bg … 1 coloured bg
+      // brightness path — pixels darker than the (bright) ground = subject
+      const clearL=bgLum-8, solidL=Math.max(40,clearL-55-s*30), spanL=Math.max(1,clearL-solidL);
+      // colour path — pixels unlike the ground's hue = subject
+      const nearC=26+s*22, farC=nearC+40, spanC=farC-nearC;
+      const crisp=(0.30+s*0.60)*(1-w);    // only crispen ink in the line-art case
       for(let i=0;i<d.length;i+=4){
-        const lum=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-        let a=(clear-lum)/span; a=a<0?0:a>1?1:a;
+        const r=d[i],g=d[i+1],b=d[i+2];
+        const L=0.299*r+0.587*g+0.114*b;
+        let aL=(clearL-L)/spanL; aL=aL<0?0:aL>1?1:aL;
+        const dCb=(r-g)-bgCb, dCr=(g-b)-bgCr, dchr=Math.sqrt(dCb*dCb+dCr*dCr);
+        let aC=(dchr-nearC)/spanC; aC=aC<0?0:aC>1?1:aC;
+        const a=(1-w)*aL + w*aC;
         d[i+3]=Math.round(a*255);
-        if(a>0){
-          const pull = crisp*(1-lum/255);  // darker pixels get pulled darker still
-          d[i]  =Math.round(d[i]  *(1-pull));
-          d[i+1]=Math.round(d[i+1]*(1-pull));
-          d[i+2]=Math.round(d[i+2]*(1-pull));
+        if(a>0 && crisp>0){
+          const pull=crisp*(1-L/255);
+          d[i]=Math.round(r*(1-pull)); d[i+1]=Math.round(g*(1-pull)); d[i+2]=Math.round(b*(1-pull));
         }
       }
-    }
+    } else { bgNeutral=false; }
     tctx.putImageData(id,0,0);
     cleanURL = tmp.toDataURL('image/png');
     keyed = true;   // output is always transparent-backed now
@@ -303,7 +320,9 @@
   async function generate(){
     if(!img||!cleanURL) return;
     const token=++regenToken, seeds=SEEDS.slice(0,state.n);
-    const doMatte = true;    // clean any residual paper/halo out of the boiled frames
+    // only knock residual white out for line-art-on-white; a bright subject
+    // (e.g. paper on wood) must NOT have its highlights matted away.
+    const doMatte = bgNeutral;
     const next=await Promise.all(seeds.map(async s=>{
       let bmp=await svgToBitmap(buildSVG(s));
       if(doMatte) bmp=matteFrame(bmp);
