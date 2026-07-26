@@ -132,17 +132,16 @@
         </div>
       </div>
 
-      <div class="ctl">
-        <div class="row"><label>Clip length</label><span class="val" id="vDur">3.0s</span></div>
-        <input type="range" id="dur" min="1" max="8" value="3" step="0.5" disabled>
-        <div class="ends"><span>1s</span><span>8s</span></div>
-      </div>
-
       <div class="divider"></div>
 
       <details class="pro">
         <summary>Pro tools</summary>
         <div class="inner">
+          <div class="ctl">
+            <div class="row"><label>Clip length</label><span class="val" id="vDur">3.0s</span></div>
+            <input type="range" id="dur" min="1" max="8" value="3" step="0.5" disabled>
+            <div class="ends"><span>1s</span><span>8s</span></div>
+          </div>
           <div class="ctl">
             <div class="row"><label>Clean-up</label><span class="val" id="vClean">22</span></div>
             <input type="range" id="cleanup" min="0" max="100" value="22" step="1" disabled>
@@ -187,8 +186,8 @@
   </div>
 
   <footer>
-    Background applies to every export. Pick <b>None</b> for true transparency (GIF), or a palette swatch.<br>
-    GIF carries transparency and loops forever; MP4 has no alpha (falls back to white).
+    Backgrounds are torn paper scraps — your drawing floats on one, transparent around the edges.<br>
+    Pick <b>None</b> for pure transparency. GIF keeps the transparency and loops forever; MP4 sits on white.
   </footer>
 </div>
 
@@ -382,10 +381,74 @@
     frames=next; if(frameIdx>=frames.length) frameIdx=0;
   }
 
+  /* ---------- torn paper backgrounds ---------- */
+  const paperCache=new Map();
+  function makePaper(color,pw,ph){
+    // seeded PRNG so the scrap is stable per colour+size (no flicker between frames)
+    let seed=0; for(const ch of color) seed=(seed*31+ch.charCodeAt(0))>>>0;
+    seed=(seed^ (pw*7919+ph*104729))>>>0;
+    const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+    const c=document.createElement('canvas'); c.width=pw; c.height=ph;
+    const x=c.getContext('2d');
+    // torn outline: correlated random walk along the perimeter — wandering
+    // tears with occasional bites, not sawtooth spikes
+    const inset=Math.min(pw,ph)*0.055, jag=Math.min(pw,ph)*0.028;
+    const step=Math.max(5,Math.round(Math.min(pw,ph)/46));
+    const sides=[[inset,inset,pw-inset,inset],[pw-inset,inset,pw-inset,ph-inset],
+                 [pw-inset,ph-inset,inset,ph-inset],[inset,ph-inset,inset,inset]];
+    const pts=[]; let j=0;
+    for(const [x0,y0,x1,y1] of sides){
+      const len=Math.hypot(x1-x0,y1-y0), n=Math.max(3,Math.round(len/step));
+      const nx=(y1-y0)/len, ny=-(x1-x0)/len;
+      for(let i=0;i<n;i++){
+        const t=i/n;
+        j=j*0.82+(rnd()-0.5)*jag*0.9;                    // smooth wander
+        if(rnd()<0.045) j+=(rnd()-0.5)*jag*2.6;          // occasional bite
+        j=Math.max(-jag*1.6,Math.min(jag*1.6,j));
+        pts.push([x0+(x1-x0)*t+nx*j, y0+(y1-y0)*t+ny*j]);
+      }
+    }
+    const tracePath=()=>{                                 // smooth through midpoints
+      x.beginPath();
+      const n=pts.length;
+      x.moveTo((pts[0][0]+pts[n-1][0])/2,(pts[0][1]+pts[n-1][1])/2);
+      for(let i=0;i<n;i++){
+        const p=pts[i], q=pts[(i+1)%n];
+        x.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);
+      }
+      x.closePath();
+    };
+    tracePath();
+    x.fillStyle=color; x.fill();
+    // paper body: fine fibre grain + broad mottle, clipped to the scrap
+    const id=x.getImageData(0,0,pw,ph), d=id.data;
+    const phase=rnd()*6.28;
+    for(let py=0;py<ph;py++) for(let px=0;px<pw;px++){
+      const i=(py*pw+px)*4; if(!d[i+3]) continue;
+      const v=1+(rnd()-0.5)*0.07
+              +Math.sin(px*0.013+py*0.007+phase)*0.022
+              +Math.sin(px*0.041-py*0.029+phase*2)*0.012;
+      d[i]=Math.min(255,d[i]*v); d[i+1]=Math.min(255,d[i+1]*v); d[i+2]=Math.min(255,d[i+2]*v);
+    }
+    x.putImageData(id,0,0);
+    // torn rim: pale fibre edge where the paper core shows
+    tracePath();
+    x.strokeStyle='rgba(255,253,246,0.6)'; x.lineWidth=Math.max(1.5,Math.min(pw,ph)*0.005);
+    x.stroke();
+    return c;
+  }
+  function bgLayer(){
+    if(state.bg==='none') return null;
+    const key=state.bg+'|'+W+'x'+H;
+    let p=paperCache.get(key);
+    if(!p){ p=makePaper(state.bg,W,H); paperCache.set(key,p); }
+    return p;
+  }
+
   /* ---------- render ---------- */
   function paint(i){
-    if(state.bg==='none') ctx.clearRect(0,0,W,H);
-    else { ctx.fillStyle=state.bg; ctx.fillRect(0,0,W,H); }
+    ctx.clearRect(0,0,W,H);
+    const p=bgLayer(); if(p) ctx.drawImage(p,0,0,W,H);
     if(frames[i]) ctx.drawImage(frames[i],0,0,W,H);
   }
   function loop(t){
@@ -393,7 +456,7 @@
     if(t-lastStep>=1000/state.fps){ lastStep=t; frameIdx=(frameIdx+1)%Math.max(1,frames.length); paint(frameIdx); }
     rafId=requestAnimationFrame(loop);
   }
-  function startPlay(){ if(playing||!frames.length)return; frameEl.classList.toggle('checker',state.bg==='none'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); $('#play').textContent='Pause preview'; }
+  function startPlay(){ if(playing||!frames.length)return; frameEl.classList.add('checker'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); $('#play').textContent='Pause preview'; }
   function stopPlay(){ playing=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; $('#play').textContent='Play preview'; }
 
   /* ---------- queue ---------- */
@@ -474,7 +537,6 @@
   function saveBlob(blob,name){ const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return blob.size; }
   async function recordVideoBlob(onProg){
     const mime=pickMime(); if(!mime) throw new Error('no encoder');
-    const vidBg = state.bg==='none' ? '#ffffff' : state.bg;
     const stream=cv.captureStream(0), track=stream.getVideoTracks()[0];
     const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000});
     const chunks=[]; rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
@@ -482,7 +544,8 @@
     const fps=state.fps,total=Math.round(fps*state.dur),stepMs=1000/fps;
     let next=performance.now();
     for(let f=0;f<total;f++){
-      ctx.fillStyle=vidBg; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);          // video has no alpha
+      const p=bgLayer(); if(p) ctx.drawImage(p,0,0,W,H);       // torn paper scrap
       if(frames.length) ctx.drawImage(frames[f%frames.length],0,0,W,H);
       if(track.requestFrame) track.requestFrame();
       if(onProg) onProg(f,total);
@@ -512,7 +575,7 @@
   function framePixels(bitmap,fill){
     const off=document.createElement('canvas'); off.width=W; off.height=H;
     const o=off.getContext('2d'); o.clearRect(0,0,W,H);
-    if(fill){ o.fillStyle=fill; o.fillRect(0,0,W,H); }
+    if(fill){ const p=bgLayer(); if(p) o.drawImage(p,0,0,W,H); }  // torn scrap; outside stays transparent
     o.drawImage(bitmap,0,0,W,H);
     return o.getImageData(0,0,W,H).data;
   }
@@ -538,7 +601,7 @@
     return out;
   }
   function buildGIF(bmps,fps,fill){
-    const transparent=!fill, CUT=128;
+    const transparent=true, CUT=128;   // even paper scraps float on transparency
     const framesRGBA=bmps.map(b=>framePixels(b,fill));
     // build a shared 256-colour table from every frame (5-bit histogram, most-used win)
     const buckets=new Map();
@@ -593,7 +656,7 @@
     const fill = state.bg==='none' ? null : state.bg;
     const blob=buildGIF(frames,state.fps,fill);
     const kb=Math.round(saveBlob(blob,'ink-boil-loop.gif')/1024);
-    const how = fill ? `on ${state.bg.toUpperCase()}` : 'transparent';
+    const how = fill ? `on torn paper ${state.bg.toUpperCase()}` : 'transparent';
     statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · ${how} · ${frames.length} frames · ${kb} KB`;
     busy=false; enable(true); $('#exportGif').textContent='Export loop · GIF'; startPlay();
   }
@@ -676,7 +739,7 @@
     if(playing)setStatus('ready'); else paint(0); });
   $('#bg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
     selectSwatch(b); state.bg=b.dataset.c;
-    updateHex(); frameEl.classList.toggle('checker',state.bg==='none'); if(!playing)paint(frameIdx); });
+    updateHex(); if(!playing)paint(frameIdx); });
   $('#play').addEventListener('click',()=>{ if(busy)return; playing?(stopPlay(),setStatus('Preview paused.')):(startPlay(),setStatus('ready')); });
   $('#exportMp4').addEventListener('click',exportVideo);
   $('#exportGif').addEventListener('click',exportGif);
