@@ -74,6 +74,12 @@
   .rgbrow{display:flex;align-items:center;gap:10px}
   .rgbrow>span{font-family:var(--mono);font-size:10px;width:9px;color:var(--ink)}
   .divider{height:1px;background:var(--line);margin:2px -20px}
+  details.pro{border:1px solid var(--line);border-radius:2px;background:rgba(23,23,27,0.02)}
+  details.pro summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:11px 14px;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none}
+  details.pro summary::-webkit-details-marker{display:none}
+  details.pro summary::after{content:'+';font-family:var(--mono);font-size:13px;color:var(--blue)}
+  details.pro[open] summary::after{content:'−'}
+  details.pro .inner{display:flex;flex-direction:column;gap:18px;padding:6px 14px 18px;border-top:1px solid var(--line-soft)}
   .actions{display:flex;flex-direction:column;gap:9px}
   .btn{font-family:var(--sans);font-weight:600;font-size:13.5px;letter-spacing:0.01em;padding:13px 16px;border-radius:2px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);transition:opacity .15s,transform .05s;display:flex;align-items:center;justify-content:center;gap:9px}
   .btn:active{transform:translateY(1px)}
@@ -115,30 +121,6 @@
 
     <div class="panel">
       <div class="ctl">
-        <div class="row"><label>Clean-up</label><span class="val" id="vClean">30</span></div>
-        <input type="range" id="cleanup" min="0" max="100" value="30" step="1" disabled>
-        <div class="ends"><span>raw scan</span><span>crisp ink</span></div>
-      </div>
-      <div class="ctl">
-        <div class="row"><label>Intensity</label><span class="val" id="vInt">12</span></div>
-        <input type="range" id="intensity" min="0" max="40" value="12" step="1" disabled>
-        <div class="ends"><span>still</span><span>churning</span></div>
-      </div>
-      <div class="ctl">
-        <div class="row"><label>Grain</label><span class="val" id="vGrain">Med</span></div>
-        <input type="range" id="grain" min="8" max="46" value="20" step="1" disabled>
-        <div class="ends"><span>broad</span><span>fine</span></div>
-      </div>
-      <div class="ctl">
-        <label>Boil style</label>
-        <div class="seg" id="style">
-          <button data-n="3" data-fps="8" class="on">Classic</button>
-          <button data-n="4" data-fps="12">Lively</button>
-          <button data-n="8" data-fps="24">Shimmer</button>
-        </div>
-      </div>
-
-      <div class="ctl">
         <div class="row"><label>Background</label><span class="val" id="hex">None</span></div>
         <div class="swatches" id="bg">
           <button data-c="none" class="none on" title="None (transparent)"></button>
@@ -150,13 +132,42 @@
         </div>
       </div>
 
-      <div class="divider"></div>
-
       <div class="ctl">
         <div class="row"><label>Clip length</label><span class="val" id="vDur">3.0s</span></div>
         <input type="range" id="dur" min="1" max="8" value="3" step="0.5" disabled>
         <div class="ends"><span>1s</span><span>8s</span></div>
       </div>
+
+      <div class="divider"></div>
+
+      <details class="pro">
+        <summary>Pro tools</summary>
+        <div class="inner">
+          <div class="ctl">
+            <div class="row"><label>Clean-up</label><span class="val" id="vClean">22</span></div>
+            <input type="range" id="cleanup" min="0" max="100" value="22" step="1" disabled>
+            <div class="ends"><span>raw scan</span><span>crisp ink</span></div>
+          </div>
+          <div class="ctl">
+            <div class="row"><label>Intensity</label><span class="val" id="vInt">9</span></div>
+            <input type="range" id="intensity" min="0" max="40" value="9" step="1" disabled>
+            <div class="ends"><span>still</span><span>churning</span></div>
+          </div>
+          <div class="ctl">
+            <div class="row"><label>Grain</label><span class="val" id="vGrain">Broad</span></div>
+            <input type="range" id="grain" min="8" max="46" value="12" step="1" disabled>
+            <div class="ends"><span>broad</span><span>fine</span></div>
+          </div>
+          <div class="ctl">
+            <label>Boil style</label>
+            <div class="seg" id="style">
+              <button data-n="3" data-fps="8">Classic</button>
+              <button data-n="4" data-fps="12" class="on">Lively</button>
+              <button data-n="8" data-fps="24">Shimmer</button>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <div class="actions">
         <button class="btn ghost" id="play" disabled>Pause preview</button>
@@ -201,7 +212,7 @@
   let regenToken = 0;
 
   const PALETTE = ['#AECB52','#9BBDF7','#EFFC9E','#7A3B3B','#EE9539'];
-  const state = { cleanup:30, intensity:12, grain:20, n:3, fps:8, bg:'none', dur:3 };
+  const state = { cleanup:22, intensity:9, grain:12, n:4, fps:12, bg:'none', dur:3 };
   const grainToFreq = g => (g/1000).toFixed(4);
   const grainLabel  = g => g<18?'Broad':g<32?'Med':'Fine';
   const baseName = n => (n||'image').replace(/\.[^.]+$/,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'image';
