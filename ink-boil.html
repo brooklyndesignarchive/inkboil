@@ -195,7 +195,7 @@
 
   const queue = [];
   let activeIndex = -1;
-  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false, bgNeutral = true;
+  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false;
   let frames = [], frameIdx = 0;
   let playing = false, busy = false, rafId = null, lastStep = 0;
   let regenToken = 0;
@@ -236,11 +236,13 @@
       }
     }
 
-    // (b) remove the background. Instead of assuming "bright = background",
-    //     we LEARN the background colour from the border ring (almost always
-    //     background) and delete whatever matches it — keying on COLOUR when
-    //     the ground is coloured (paper on wood) and on BRIGHTNESS when it's
-    //     neutral (dark ink on white paper). Always on.
+    // (b) remove the background — statistically, not by fixed offsets.
+    //     Border ring tells us if the ground is coloured (photo: paper on
+    //     wood) or neutral (scan: ink on paper). Neutral grounds get proper
+    //     document binarization: Otsu's method finds where the INK cluster
+    //     and PAPER cluster actually sit, the alpha ramp is anchored to
+    //     them (ink level -> fully solid, paper's own variance -> clear),
+    //     and a despeckle pass deletes isolated flecks of texture.
     if(!hadAlpha){
       let br=0,bg2=0,bb=0,bn=0;
       const band=Math.max(2,Math.round(Math.min(W,H)*0.045));
@@ -248,51 +250,93 @@
       for(let xx=0;xx<W;xx+=2) for(let t=0;t<band;t++){ acc(xx,t); acc(xx,H-1-t); }
       for(let yy=0;yy<H;yy+=2) for(let t=0;t<band;t++){ acc(t,yy); acc(W-1-t,yy); }
       br/=bn; bg2/=bn; bb/=bn;
-      const bgLum=0.299*br+0.587*bg2+0.114*bb;
       const bgCb=br-bg2, bgCr=bg2-bb;
       const bgSat=Math.max(br,bg2,bb)-Math.min(br,bg2,bb);
-      bgNeutral = bgSat < 22;
-      const w = Math.min(1, Math.max(0,(bgSat-16)/24));   // 0 neutral bg … 1 coloured bg
-      // brightness path — pixels darker than the (bright) ground = subject
-      const clearL=bgLum-8, solidL=Math.max(40,clearL-42-s*30), spanL=Math.max(1,clearL-solidL);
-      // colour path — pixels unlike the ground's hue = subject
-      const nearC=26+s*22, farC=nearC+40, spanC=farC-nearC;
-      const crisp=(0.35+s*0.55)*(1-w);    // only crispen ink in the line-art case
-      for(let i=0;i<d.length;i+=4){
-        const r=d[i],g=d[i+1],b=d[i+2];
-        const L=0.299*r+0.587*g+0.114*b;
-        let aL=(clearL-L)/spanL; aL=aL<0?0:aL>1?1:aL;
-        const dCb=(r-g)-bgCb, dCr=(g-b)-bgCr, dchr=Math.sqrt(dCb*dCb+dCr*dCr);
-        let aC=(dchr-nearC)/spanC; aC=aC<0?0:aC>1?1:aC;
-        let a=(1-w)*aL + w*aC;
-        if(a>0&&a<1) a=Math.pow(a,0.5);   // push faint ink toward solid; edges stay soft
-        d[i+3]=Math.round(a*255);
-        if(a>0 && crisp>0){
-          const pull=crisp*(1-L/255);
-          d[i]=Math.round(r*(1-pull)); d[i+1]=Math.round(g*(1-pull)); d[i+2]=Math.round(b*(1-pull));
+      if(bgSat<24){
+        // --- neutral ground: ink/paper statistics ---
+        const hist=new Uint32Array(256), total=W*H;
+        for(let i=0;i<d.length;i+=4)
+          hist[(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0]++;
+        let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
+        let sumB=0,wB=0,best=-1,t=127;                 // Otsu threshold
+        for(let i=0;i<256;i++){
+          wB+=hist[i]; if(!wB) continue;
+          const wF=total-wB; if(!wF) break;
+          sumB+=i*hist[i];
+          const mB=sumB/wB, mF=(sum-sumB)/wF, v=wB*wF*(mB-mF)*(mB-mF);
+          if(v>best){best=v;t=i;}
+        }
+        const medianIn=(lo,hi)=>{ let n=0; for(let i=lo;i<=hi;i++)n+=hist[i];
+          if(!n) return (lo+hi)>>1; let a2=0;
+          for(let i=lo;i<=hi;i++){a2+=hist[i]; if(a2*2>=n) return i;} return hi; };
+        const inkMed=medianIn(0,t), paperMed=medianIn(t+1,255), gap=paperMed-inkMed;
+        let solidL,clearL;
+        if(gap<28){ clearL=paperMed-12; solidL=paperMed-48; }         // no clear ink found — be conservative
+        else { solidL=inkMed+gap*0.42; clearL=paperMed-Math.max(8,gap*0.18); }
+        const span=Math.max(1,clearL-solidL);
+        // Clean-up pulls the measured ink level toward true black
+        const inkGain = inkMed>0 ? Math.max(0.12,(inkMed - s*Math.max(0,inkMed-30))/inkMed) : 1;
+        for(let i=0;i<d.length;i+=4){
+          const L=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          let a=(clearL-L)/span; a=a<0?0:a>1?1:a;
+          d[i+3]=Math.round(a*255);
+          if(a>0&&inkGain<1){
+            const m=1-(1-inkGain)*a;
+            d[i]=Math.round(d[i]*m); d[i+1]=Math.round(d[i+1]*m); d[i+2]=Math.round(d[i+2]*m);
+          }
+        }
+      } else {
+        // --- coloured ground: key on distance from the ground's hue ---
+        const nearC=26+s*22, farC=nearC+40, spanC=farC-nearC;
+        for(let i=0;i<d.length;i+=4){
+          const dCb=(d[i]-d[i+1])-bgCb, dCr=(d[i+1]-d[i+2])-bgCr;
+          const dchr=Math.sqrt(dCb*dCb+dCr*dCr);
+          let a=(dchr-nearC)/spanC; a=a<0?0:a>1?1:a;
+          d[i+3]=Math.round(a*255);
         }
       }
-    } else { bgNeutral=false; }
+      despeckle(d,s);
+    }
     tctx.putImageData(id,0,0);
     cleanURL = tmp.toDataURL('image/png');
     keyed = true;   // output is always transparent-backed now
   }
 
-  /* ---------- white-matte removal (guarantees transparent paper) ---------- */
-  function removeWhiteMatte(d){
-    const HI=246, LO=214;
-    for(let i=0;i<d.length;i+=4){
-      if(d[i+3]<250) continue;                 // leave already-transparent / soft edges
-      const lum=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      if(lum>=HI) d[i+3]=0;
-      else if(lum>LO) d[i+3]=Math.round((HI-lum)/(HI-LO)*255);
+  /* ---------- despeckle: keep real strokes, delete isolated flecks ---------- */
+  function despeckle(d,s){
+    // Clean-up raises the size floor: 0 keeps every dot, high kills dust
+    const TH=64, N=W*H, minArea=Math.max(4,Math.round(N/50000*(1+s*8)));
+    const lbl=new Int32Array(N), stack=new Int32Array(N), areas=[0];
+    let cur=0;
+    for(let p=0;p<N;p++){
+      if(lbl[p]||d[p*4+3]<TH) continue;
+      cur++; let area=0, sp=0; stack[sp++]=p; lbl[p]=cur;
+      while(sp){
+        const q=stack[--sp]; area++;
+        const qx=q%W, qy=(q-qx)/W;
+        for(let dy=-1;dy<=1;dy++){ const yy=qy+dy; if(yy<0||yy>=H)continue;
+          for(let dx=-1;dx<=1;dx++){ const xx=qx+dx; if(xx<0||xx>=W)continue;
+            const r=yy*W+xx;
+            if(!lbl[r]&&d[r*4+3]>=TH){ lbl[r]=cur; stack[sp++]=r; } } }
+      }
+      areas.push(area);
     }
-  }
-  function matteFrame(src){
-    const c=document.createElement('canvas'); c.width=W; c.height=H;
-    const x=c.getContext('2d'); x.clearRect(0,0,W,H); x.drawImage(src,0,0,W,H);
-    const im=x.getImageData(0,0,W,H); removeWhiteMatte(im.data); x.putImageData(im,0,0);
-    return c;
+    // keep the big components plus a 2px halo (preserves anti-aliased edges)
+    let keep=new Uint8Array(N);
+    for(let p=0;p<N;p++) if(lbl[p]&&areas[lbl[p]]>=minArea) keep[p]=1;
+    for(let it=0;it<2;it++){
+      const nk=new Uint8Array(keep);
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+        if(keep[y*W+x]) continue;
+        let hit=false;
+        for(let dy=-1;dy<=1&&!hit;dy++){ const yy=y+dy; if(yy<0||yy>=H)continue;
+          for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=W)continue;
+            if(keep[yy*W+xx]){hit=true;break;} } }
+        if(hit) nk[y*W+x]=1;
+      }
+      keep=nk;
+    }
+    for(let p=0;p<N;p++) if(!keep[p]&&d[p*4+3]>0) d[p*4+3]=0;
   }
 
   /* ---------- boil frames ---------- */
@@ -321,14 +365,8 @@
   async function generate(){
     if(!img||!cleanURL) return;
     const token=++regenToken, seeds=SEEDS.slice(0,state.n);
-    // only knock residual white out for line-art-on-white; a bright subject
-    // (e.g. paper on wood) must NOT have its highlights matted away.
-    const doMatte = bgNeutral;
-    const next=await Promise.all(seeds.map(async s=>{
-      let bmp=await svgToBitmap(buildSVG(s));
-      if(doMatte) bmp=matteFrame(bmp);
-      return bmp;
-    }));
+    // the source is already keyed, so boiled frames need no further matting
+    const next=await Promise.all(seeds.map(s=>svgToBitmap(buildSVG(s))));
     if(token!==regenToken) return;
     frames=next; if(frameIdx>=frames.length) frameIdx=0;
   }
