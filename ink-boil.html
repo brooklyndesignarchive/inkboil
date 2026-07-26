@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ink Boil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E9E7DF; --panel:#F4F2EC; --ink:#17171B;
+    --blue:#2E6389; --blue-line:#9CCADD;
+    --line:rgba(23,23,27,0.14); --line-soft:rgba(23,23,27,0.07);
+    --mono:'Space Mono',ui-monospace,monospace;
+    --sans:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
+  .wrap{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:28px 24px 40px;display:flex;flex-direction:column;gap:22px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px;flex-wrap:wrap}
+  .title{font-weight:700;font-size:26px;letter-spacing:-0.02em;display:flex;align-items:baseline;gap:12px}
+  .title .mark{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--blue-line);border:2px solid var(--blue);transform:translateY(1px)}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue)}
+  .stage{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start}
+  @media(max-width:820px){.stage{grid-template-columns:1fr}}
+  .leftcol{display:flex;flex-direction:column;gap:12px}
+  .frame{position:relative;background:
+      linear-gradient(var(--line-soft) 1px,transparent 1px) 0 0/22px 22px,
+      linear-gradient(90deg,var(--line-soft) 1px,transparent 1px) 0 0/22px 22px,
+      var(--panel);
+    border:1px solid var(--line);border-radius:2px;min-height:440px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .frame.checker{background:conic-gradient(from 0deg,#e6e4dc 0 25%,#f4f2ec 0 50%,#e6e4dc 0 75%,#f4f2ec 0) 0 0/24px 24px}
+  canvas{max-width:100%;max-height:66vh;display:block}
+  .drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:32px;cursor:pointer;transition:background .15s}
+  .drop.hide{display:none}
+  .drop.over{background:rgba(46,99,137,0.06)}
+  .drop .ring{width:56px;height:56px;border-radius:50%;border:2px dashed var(--blue);display:flex;align-items:center;justify-content:center;color:var(--blue);font-family:var(--mono);font-size:22px}
+  .drop h2{font-size:17px;font-weight:600;letter-spacing:-0.01em}
+  .drop p{font-family:var(--mono);font-size:11.5px;color:rgba(23,23,27,0.5);line-height:1.6;max-width:280px}
+  .badge{position:absolute;top:12px;left:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;color:rgba(23,23,27,0.45);text-transform:uppercase;pointer-events:none}
+  .tray{display:none;gap:8px;overflow-x:auto;padding:2px 2px 6px}
+  .thumb{position:relative;width:56px;height:56px;flex:0 0 auto;border:1px solid var(--line);border-radius:2px;overflow:hidden;cursor:pointer;background:#fff}
+  .thumb.on{box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--blue);border-color:var(--blue)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .rm{position:absolute;top:1px;right:1px;width:16px;height:16px;line-height:13px;border:none;border-radius:2px;background:rgba(23,23,27,0.62);color:#fff;font-size:12px;cursor:pointer;padding:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:20px;display:flex;flex-direction:column;gap:18px}
+  .ctl{display:flex;flex-direction:column;gap:9px}
+  .ctl .row{display:flex;justify-content:space-between;align-items:baseline}
+  .ctl label{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink)}
+  .ctl .val{font-family:var(--mono);font-size:11px;color:var(--blue);font-weight:700}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line);border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;background:var(--blue);cursor:pointer;border:3px solid var(--panel);box-shadow:0 0 0 1px var(--blue)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--blue);cursor:pointer;border:3px solid var(--panel)}
+  input[type=range]:disabled{opacity:.4}
+  input[type=range].r::-webkit-slider-thumb{background:#c0392b;box-shadow:0 0 0 1px #c0392b}
+  input[type=range].g::-webkit-slider-thumb{background:#27853f;box-shadow:0 0 0 1px #27853f}
+  input[type=range].b::-webkit-slider-thumb{background:#2E6389;box-shadow:0 0 0 1px #2E6389}
+  input[type=range].r::-moz-range-thumb{background:#c0392b}
+  input[type=range].g::-moz-range-thumb{background:#27853f}
+  input[type=range].b::-moz-range-thumb{background:#2E6389}
+  .ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:rgba(23,23,27,0.4);text-transform:uppercase;letter-spacing:0.04em}
+  .seg{display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .seg button{flex:1;background:transparent;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;padding:9px 4px;color:var(--ink);border-right:1px solid var(--line);transition:background .12s,color .12s}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--blue);color:#fff}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .swatches button{width:30px;height:30px;border-radius:50%;cursor:pointer;border:1px solid var(--line);position:relative}
+  .swatches button.none{background:conic-gradient(from 0deg,#dcdad2 0 25%,#fff 0 50%,#dcdad2 0 75%,#fff 0) 0 0/10px 10px}
+  .swatches button.on{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--blue)}
+  .swatches button.cust::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;mix-blend-mode:difference;font-family:var(--mono);font-size:13px}
+  .rgb{display:flex;flex-direction:column;gap:7px}
+  .rgbrow{display:flex;align-items:center;gap:10px}
+  .rgbrow>span{font-family:var(--mono);font-size:10px;width:9px;color:var(--ink)}
+  .divider{height:1px;background:var(--line);margin:2px -20px}
+  .actions{display:flex;flex-direction:column;gap:9px}
+  .btn{font-family:var(--sans);font-weight:600;font-size:13.5px;letter-spacing:0.01em;padding:13px 16px;border-radius:2px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);transition:opacity .15s,transform .05s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.rec{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.alpha{background:transparent;border-color:var(--blue);color:var(--blue)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .batch{display:none;flex-direction:column;gap:9px;border:1px solid var(--blue);border-radius:2px;padding:14px;background:rgba(46,99,137,0.05)}
+  .batch .bh{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue);display:flex;justify-content:space-between;align-items:baseline}
+  .status{font-family:var(--mono);font-size:11px;line-height:1.6;color:rgba(23,23,27,0.6);min-height:32px}
+  .status .live{color:var(--blue);font-weight:700}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .dot.pulse{animation:p 1s infinite}
+  @keyframes p{50%{opacity:.3}}
+  footer{font-family:var(--mono);font-size:10.5px;color:rgba(23,23,27,0.4);text-align:center;padding-bottom:8px;line-height:1.7}
+  @media(prefers-reduced-motion:reduce){.dot.pulse{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title"><span class="mark"></span>Ink Boil</div>
+    <div class="tag">line animation · scan → boil → video / transparent / batch</div>
+  </header>
+
+  <div class="stage">
+    <div class="leftcol">
+      <div class="frame" id="frame">
+        <span class="badge" id="badge"></span>
+        <canvas id="cv"></canvas>
+        <div class="drop" id="drop">
+          <div class="ring">+</div>
+          <h2>Drop drawings here</h2>
+          <p>One or several. PNG or JPG — scans welcome. Line art on white works best; leave a little margin so the ink has room to boil.</p>
+        </div>
+      </div>
+      <div class="tray" id="tray"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ctl">
+        <div class="row"><label>Clean-up</label><span class="val" id="vClean">30</span></div>
+        <input type="range" id="cleanup" min="0" max="100" value="30" step="1" disabled>
+        <div class="ends"><span>raw scan</span><span>crisp ink</span></div>
+      </div>
+      <div class="ctl">
+        <div class="row"><label>Intensity</label><span class="val" id="vInt">12</span></div>
+        <input type="range" id="intensity" min="0" max="40" value="12" step="1" disabled>
+        <div class="ends"><span>still</span><span>churning</span></div>
+      </div>
+      <div class="ctl">
+        <div class="row"><label>Grain</label><span class="val" id="vGrain">Med</span></div>
+        <input type="range" id="grain" min="8" max="46" value="20" step="1" disabled>
+        <div class="ends"><span>broad</span><span>fine</span></div>
+      </div>
+      <div class="ctl">
+        <label>Boil style</label>
+        <div class="seg" id="style">
+          <button data-n="3" data-fps="8" class="on">Classic</button>
+          <button data-n="4" data-fps="12">Lively</button>
+          <button data-n="8" data-fps="24">Shimmer</button>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <div class="row"><label>Background</label><span class="val" id="hex">None</span></div>
+        <div class="swatches" id="bg">
+          <button data-c="none" class="none on" title="None (transparent)"></button>
+          <button data-c="#AECB52" style="background:#AECB52" title="Lime"></button>
+          <button data-c="#9BBDF7" style="background:#9BBDF7" title="Sky"></button>
+          <button data-c="#EFFC9E" style="background:#EFFC9E" title="Butter"></button>
+          <button data-c="#7A3B3B" style="background:#7A3B3B" title="Brick"></button>
+          <button data-c="#EE9539" style="background:#EE9539" title="Marmalade"></button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctl">
+        <div class="row"><label>Clip length</label><span class="val" id="vDur">3.0s</span></div>
+        <input type="range" id="dur" min="1" max="8" value="3" step="0.5" disabled>
+        <div class="ends"><span>1s</span><span>8s</span></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" id="play" disabled>Pause preview</button>
+        <button class="btn rec" id="exportMp4" disabled>Export video · MP4</button>
+        <button class="btn alpha" id="exportGif" disabled>Export loop · GIF</button>
+        <button class="btn ghost" id="replace" disabled>Add drawings</button>
+      </div>
+
+      <div class="batch" id="batch">
+        <div class="bh"><span>Batch · same settings</span><span><b id="batchCount">0</b> images</span></div>
+        <button class="btn alpha" id="batchGif">Export all · GIF · ZIP</button>
+        <button class="btn ghost" id="batchMp4">Export all · MP4 · ZIP</button>
+      </div>
+
+      <div class="status" id="status">Load a drawing to begin.</div>
+    </div>
+  </div>
+
+  <footer>
+    Background applies to every export. Pick <b>None</b> for true transparency (GIF), or a palette swatch.<br>
+    GIF carries transparency and loops forever; MP4 has no alpha (falls back to white).
+  </footer>
+</div>
+
+<input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const cv = $('#cv'), ctx = cv.getContext('2d');
+  const frameEl = $('#frame'), drop = $('#drop'), badge = $('#badge');
+  const fileInput = $('#file'), statusEl = $('#status');
+
+  const MAX = 1000, MARGIN = 26;
+  const SEEDS = [7,19,42,88,3,61,25,50,13,71];
+
+  const queue = [];
+  let activeIndex = -1;
+  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false;
+  let frames = [], frameIdx = 0;
+  let playing = false, busy = false, rafId = null, lastStep = 0;
+  let regenToken = 0;
+
+  const PALETTE = ['#AECB52','#9BBDF7','#EFFC9E','#7A3B3B','#EE9539'];
+  const state = { cleanup:30, intensity:12, grain:20, n:3, fps:8, bg:'none', dur:3 };
+  const grainToFreq = g => (g/1000).toFixed(4);
+  const grainLabel  = g => g<18?'Broad':g<32?'Med':'Fine';
+  const baseName = n => (n||'image').replace(/\.[^.]+$/,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'image';
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const toHex = v => v.toString(16).padStart(2,'0');
+  const rgbHex = (r,g,b) => ('#'+toHex(r)+toHex(g)+toHex(b)).toUpperCase();
+
+  /* ---------- scan cleanup + background removal ---------- */
+  function processSource(){
+    const s = state.cleanup/100;
+    const tmp = document.createElement('canvas'); tmp.width=W; tmp.height=H;
+    const tctx = tmp.getContext('2d');
+    tctx.clearRect(0,0,W,H); tctx.drawImage(img,0,0,W,H);
+    const id = tctx.getImageData(0,0,W,H), d = id.data;
+
+    // does the source already carry its own transparency?
+    let hadAlpha=false;
+    for(let i=3;i<d.length;i+=4){ if(d[i]<250){hadAlpha=true;break;} }
+    srcHadAlpha = hadAlpha;
+
+    // (a) gentle denoise — smooths scan speckle. Clean-up controls how much.
+    if(s>0){
+      const k=Math.min(0.55,s*0.55), src=new Uint8ClampedArray(d);
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+        const base=(y*W+x)*4;
+        for(let c=0;c<3;c++){
+          let sum=0,cnt=0;
+          for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=H)continue;
+            for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=W)continue; sum+=src[(yy*W+xx)*4+c]; cnt++; } }
+          d[base+c]=src[base+c]*(1-k)+(sum/cnt)*k;
+        }
+      }
+    }
+
+    // (b) knock the paper out. Ink stays fully opaque; only the near-white
+    //     range ramps to transparent, so lines never wash out. Always on.
+    if(!hadAlpha){
+      const clear = 250 - s*30;            // lum >= clear  -> fully transparent (paper)
+      const solid = Math.max(60, clear-58-s*30); // lum <= solid -> fully opaque (ink)
+      const span  = Math.max(1, clear-solid);
+      const crisp = 0.30 + s*0.60;         // deepen ink as Clean-up rises
+      for(let i=0;i<d.length;i+=4){
+        const lum=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+        let a=(clear-lum)/span; a=a<0?0:a>1?1:a;
+        d[i+3]=Math.round(a*255);
+        if(a>0){
+          const pull = crisp*(1-lum/255);  // darker pixels get pulled darker still
+          d[i]  =Math.round(d[i]  *(1-pull));
+          d[i+1]=Math.round(d[i+1]*(1-pull));
+          d[i+2]=Math.round(d[i+2]*(1-pull));
+        }
+      }
+    }
+    tctx.putImageData(id,0,0);
+    cleanURL = tmp.toDataURL('image/png');
+    keyed = true;   // output is always transparent-backed now
+  }
+
+  /* ---------- white-matte removal (guarantees transparent paper) ---------- */
+  function removeWhiteMatte(d){
+    const HI=246, LO=214;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<250) continue;                 // leave already-transparent / soft edges
+      const lum=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+      if(lum>=HI) d[i+3]=0;
+      else if(lum>LO) d[i+3]=Math.round((HI-lum)/(HI-LO)*255);
+    }
+  }
+  function matteFrame(src){
+    const c=document.createElement('canvas'); c.width=W; c.height=H;
+    const x=c.getContext('2d'); x.clearRect(0,0,W,H); x.drawImage(src,0,0,W,H);
+    const im=x.getImageData(0,0,W,H); removeWhiteMatte(im.data); x.putImageData(im,0,0);
+    return c;
+  }
+
+  /* ---------- boil frames ---------- */
+  function buildSVG(seed){
+    const bf=grainToFreq(state.grain), scale=state.intensity, iw=W-MARGIN*2, ih=H-MARGIN*2;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+      <defs><filter id="b" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="${bf}" numOctaves="2" seed="${seed}" stitchTiles="stitch" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="${scale}" xChannelSelector="R" yChannelSelector="G"/>
+      </filter></defs>
+      <image href="${cleanURL}" x="${MARGIN}" y="${MARGIN}" width="${iw}" height="${ih}" preserveAspectRatio="xMidYMid meet" filter="url(#b)"/>
+    </svg>`;
+  }
+  async function svgToBitmap(svg){
+    const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+    try{ return await createImageBitmap(blob); }
+    catch(e){
+      const url=URL.createObjectURL(blob);
+      try{
+        const el=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+        const off=document.createElement('canvas');off.width=W;off.height=H;
+        off.getContext('2d').drawImage(el,0,0,W,H);return off;
+      } finally{URL.revokeObjectURL(url);}
+    }
+  }
+  async function generate(){
+    if(!img||!cleanURL) return;
+    const token=++regenToken, seeds=SEEDS.slice(0,state.n);
+    const doMatte = true;    // clean any residual paper/halo out of the boiled frames
+    const next=await Promise.all(seeds.map(async s=>{
+      let bmp=await svgToBitmap(buildSVG(s));
+      if(doMatte) bmp=matteFrame(bmp);
+      return bmp;
+    }));
+    if(token!==regenToken) return;
+    frames=next; if(frameIdx>=frames.length) frameIdx=0;
+  }
+
+  /* ---------- render ---------- */
+  function paint(i){
+    if(state.bg==='none') ctx.clearRect(0,0,W,H);
+    else { ctx.fillStyle=state.bg; ctx.fillRect(0,0,W,H); }
+    if(frames[i]) ctx.drawImage(frames[i],0,0,W,H);
+  }
+  function loop(t){
+    if(!playing){rafId=null;return;}
+    if(t-lastStep>=1000/state.fps){ lastStep=t; frameIdx=(frameIdx+1)%Math.max(1,frames.length); paint(frameIdx); }
+    rafId=requestAnimationFrame(loop);
+  }
+  function startPlay(){ if(playing||!frames.length)return; frameEl.classList.toggle('checker',state.bg==='none'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); $('#play').textContent='Pause preview'; }
+  function stopPlay(){ playing=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; $('#play').textContent='Play preview'; }
+
+  /* ---------- queue ---------- */
+  function decodeImage(dataURL){ return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataURL;}); }
+  async function loadIntoGlobals(dataURL){
+    const i=await decodeImage(dataURL);
+    const w=i.naturalWidth,h=i.naturalHeight,sc=Math.min(1,MAX/Math.max(w,h));
+    W=Math.round(w*sc);H=Math.round(h*sc);cv.width=W;cv.height=H;img=i;
+    badge.textContent=`${i.naturalWidth}×${i.naturalHeight}`;
+    processSource();
+  }
+  async function setActive(i){
+    if(i<0||i>=queue.length) return;
+    activeIndex=i; renderTray();
+    setStatus('Cleaning scan & building boil…');
+    await loadIntoGlobals(queue[i].dataURL);
+    await generate(); frameIdx=0; paint(0); startPlay(); setStatus('ready');
+  }
+  function renderTray(){
+    const tray=$('#tray');
+    if(queue.length===0){ tray.style.display='none'; tray.innerHTML=''; return; }
+    tray.style.display='flex'; tray.innerHTML='';
+    queue.forEach((it,i)=>{
+      const d=document.createElement('div'); d.className='thumb'+(i===activeIndex?' on':'');
+      const im=document.createElement('img'); im.src=it.dataURL; d.appendChild(im);
+      const x=document.createElement('button'); x.className='rm'; x.textContent='×'; x.title='Remove';
+      x.onclick=e=>{ e.stopPropagation(); removeItem(i); };
+      d.appendChild(x);
+      d.onclick=()=>{ if(!busy) setActive(i); };
+      tray.appendChild(d);
+    });
+    updateBatchUI();
+  }
+  function removeItem(i){
+    if(busy) return;
+    queue.splice(i,1);
+    if(queue.length===0){
+      activeIndex=-1; stopPlay(); ctx.clearRect(0,0,cv.width,cv.height);
+      badge.textContent=''; drop.classList.remove('hide'); enable(false);
+      renderTray(); setStatus('Load a drawing to begin.'); return;
+    }
+    if(i<activeIndex){ activeIndex--; renderTray(); }
+    else if(i===activeIndex){ activeIndex=Math.min(activeIndex,queue.length-1); setActive(activeIndex); }
+    else renderTray();
+  }
+  function loadFiles(list){
+    const arr=[...list].filter(f=>f.type.startsWith('image/'));
+    if(!arr.length) return;
+    const wasEmpty=queue.length===0;
+    let remaining=arr.length;
+    arr.forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{
+        queue.push({name:f.name, dataURL:e.target.result});
+        if(--remaining===0){
+          drop.classList.add('hide'); enable(true); renderTray();
+          if(wasEmpty) setActive(0);
+        }
+      };
+      r.readAsDataURL(f);
+    });
+  }
+
+  /* ---------- status ---------- */
+  function setStatus(kind){
+    if(kind==='ready') statusEl.innerHTML=`<span class="dot" style="background:var(--blue)"></span>Live preview · ${state.fps} fps${keyed?' · transparent-ready':''}`;
+    else if(kind && kind.rec) statusEl.innerHTML=`<span class="live"><span class="dot pulse" style="background:var(--blue)"></span>${kind.rec}</span>`;
+    else statusEl.textContent=kind;
+  }
+
+  /* ---------- video (MP4, WebM fallback) ---------- */
+  function pickMime(){
+    return ['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4',
+            'video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']
+      .find(o=>window.MediaRecorder&&MediaRecorder.isTypeSupported(o))||'';
+  }
+  const mimeExt = m => m.includes('mp4') ? 'mp4' : 'webm';
+  function saveBlob(blob,name){ const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return blob.size; }
+  async function recordVideoBlob(onProg){
+    const mime=pickMime(); if(!mime) throw new Error('no encoder');
+    const vidBg = state.bg==='none' ? '#ffffff' : state.bg;
+    const stream=cv.captureStream(0), track=stream.getVideoTracks()[0];
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000});
+    const chunks=[]; rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    const done=new Promise(res=>rec.onstop=res); rec.start();
+    const fps=state.fps,total=Math.round(fps*state.dur),stepMs=1000/fps;
+    let next=performance.now();
+    for(let f=0;f<total;f++){
+      ctx.fillStyle=vidBg; ctx.fillRect(0,0,W,H);
+      if(frames.length) ctx.drawImage(frames[f%frames.length],0,0,W,H);
+      if(track.requestFrame) track.requestFrame();
+      if(onProg) onProg(f,total);
+      next+=stepMs; await sleep(Math.max(0,next-performance.now()));  // clock-anchored, no drift
+    }
+    rec.stop(); await done;
+    return {blob:new Blob(chunks,{type:mime}), ext:mimeExt(mime)};
+  }
+  async function exportVideo(){
+    if(busy||!img) return;
+    if(!pickMime()){ setStatus('No video encoder here — try Chrome, Edge or Safari.'); return; }
+    busy=true; stopPlay(); enable(false); $('#exportMp4').textContent='Recording…';
+    try{
+      const {blob,ext}=await recordVideoBlob((f)=>setStatus({rec:`Recording ${(f/state.fps).toFixed(1)}s / ${state.dur.toFixed(1)}s`}));
+      const kb=Math.round(saveBlob(blob,'ink-boil.'+ext)/1024);
+      const note = ext!=='mp4' ? ' · (browser can’t do MP4, saved WebM)' : (state.bg==='none'?' · (video has no alpha, used white)':'');
+      statusEl.innerHTML=`Saved <b>ink-boil.${ext}</b> · ${state.dur.toFixed(1)}s · ${kb} KB`+note;
+    }catch(e){ setStatus('Video export failed on this browser.'); }
+    busy=false; enable(true); $('#exportMp4').textContent='Export video · MP4'; startPlay();
+  }
+
+  /* ---------- CRC32 (used by ZIP) ---------- */
+  const CRC=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+  function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+
+  /* ---------- animated GIF encoder (palette + LZW, no libs) ---------- */
+  function framePixels(bitmap,fill){
+    const off=document.createElement('canvas'); off.width=W; off.height=H;
+    const o=off.getContext('2d'); o.clearRect(0,0,W,H);
+    if(fill){ o.fillStyle=fill; o.fillRect(0,0,W,H); }
+    o.drawImage(bitmap,0,0,W,H);
+    return o.getImageData(0,0,W,H).data;
+  }
+  // GIF LZW (variable-width) — mirrors the canonical encoder so browsers decode it.
+  function gifLZW(minCode,data){
+    const clear=1<<minCode, eoi=clear+1;
+    let size=minCode+1, next=eoi+1, dict=new Map();
+    const out=[]; let cur=0, bits=0;
+    const emit=code=>{ cur|=code<<bits; bits+=size; while(bits>=8){ out.push(cur&255); cur>>=8; bits-=8; } };
+    emit(clear);
+    let prefix=data[0];
+    for(let i=1;i<data.length;i++){
+      const k=data[i], key=prefix*256+k;
+      if(dict.has(key)){ prefix=dict.get(key); continue; }
+      emit(prefix);
+      if(next===(1<<size)){ if(size<12) size++; }
+      if(next===4096){ emit(clear); next=eoi+1; size=minCode+1; dict=new Map(); }
+      else { dict.set(key,next++); }
+      prefix=k;
+    }
+    emit(prefix); emit(eoi);
+    if(bits>0) out.push(cur&255);
+    return out;
+  }
+  function buildGIF(bmps,fps,fill){
+    const transparent=!fill, CUT=128;
+    const framesRGBA=bmps.map(b=>framePixels(b,fill));
+    // build a shared 256-colour table from every frame (5-bit histogram, most-used win)
+    const buckets=new Map();
+    for(const data of framesRGBA)
+      for(let i=0;i<data.length;i+=4){
+        if(transparent && data[i+3]<CUT) continue;
+        const key=((data[i]>>3)<<10)|((data[i+1]>>3)<<5)|(data[i+2]>>3);
+        let e=buckets.get(key); if(!e){e=[0,0,0,0];buckets.set(key,e);}
+        e[0]+=data[i];e[1]+=data[i+1];e[2]+=data[i+2];e[3]++;
+      }
+    const list=[...buckets.values()].sort((a,b)=>b[3]-a[3]).slice(0,transparent?255:256);
+    const pal=list.map(e=>[Math.round(e[0]/e[3]),Math.round(e[1]/e[3]),Math.round(e[2]/e[3])]);
+    if(pal.length===0) pal.push([0,0,0]);
+    const transIdx = transparent ? pal.length : -1;
+    const table=new Uint8Array(768);
+    pal.forEach((p,i)=>{table[i*3]=p[0];table[i*3+1]=p[1];table[i*3+2]=p[2];});
+    // map every pixel to nearest palette index (cached by quantised colour)
+    const cache=new Map();
+    const nearest=(r,g,b)=>{ let best=0,bd=1e9; for(let i=0;i<pal.length;i++){const p=pal[i],dr=r-p[0],dg=g-p[1],db=b-p[2],dd=dr*dr+dg*dg+db*db; if(dd<bd){bd=dd;best=i;}} return best; };
+    const indexed=framesRGBA.map(data=>{
+      const arr=new Uint8Array(W*H);
+      for(let p=0,i=0;i<data.length;i+=4,p++){
+        if(transparent && data[i+3]<CUT){ arr[p]=transIdx; continue; }
+        const key=((data[i]>>3)<<10)|((data[i+1]>>3)<<5)|(data[i+2]>>3);
+        let ci=cache.get(key); if(ci===undefined){ ci=nearest(data[i],data[i+1],data[i+2]); cache.set(key,ci); }
+        arr[p]=ci;
+      }
+      return arr;
+    });
+    // assemble the file
+    const out=[]; const u16=n=>{out.push(n&255,(n>>8)&255);};
+    'GIF89a'.split('').forEach(c=>out.push(c.charCodeAt(0)));
+    u16(W); u16(H); out.push(0xF7,0,0);            // global table, 8-bit, 256 entries
+    for(let i=0;i<768;i++) out.push(table[i]);
+    out.push(0x21,0xFF,0x0B); 'NETSCAPE2.0'.split('').forEach(c=>out.push(c.charCodeAt(0))); out.push(3,1,0,0,0); // loop forever
+    const delay=Math.max(2,Math.round(100/fps));
+    for(const arr of indexed){
+      out.push(0x21,0xF9,0x04,(2<<2)|(transIdx>=0?1:0)); u16(delay); out.push(transIdx>=0?transIdx:0,0x00);
+      out.push(0x2C); u16(0); u16(0); u16(W); u16(H); out.push(0x00);
+      out.push(8);
+      const lzw=gifLZW(8,arr);
+      for(let i=0;i<lzw.length;){ const n=Math.min(255,lzw.length-i); out.push(n); for(let j=0;j<n;j++) out.push(lzw[i+j]); i+=n; }
+      out.push(0x00);
+    }
+    out.push(0x3B);
+    return new Blob([new Uint8Array(out)],{type:'image/gif'});
+  }
+  async function exportGif(){
+    if(busy||!img) return;
+    busy=true; stopPlay(); enable(false); $('#exportGif').textContent='Building…';
+    setStatus({rec:'Building GIF…'}); await sleep(20);
+    const fill = state.bg==='none' ? null : state.bg;
+    const blob=buildGIF(frames,state.fps,fill);
+    const kb=Math.round(saveBlob(blob,'ink-boil-loop.gif')/1024);
+    const how = fill ? `on ${state.bg.toUpperCase()}` : 'transparent';
+    statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · ${how} · ${frames.length} frames · ${kb} KB`;
+    busy=false; enable(true); $('#exportGif').textContent='Export loop · GIF'; startPlay();
+  }
+
+  /* ---------- ZIP ---------- */
+  function makeZip(files){
+    const enc=new TextEncoder(),chunks=[],central=[];let offset=0;
+    const push=a=>{chunks.push(a);offset+=a.length;};
+    const le=(n,len)=>{const a=new Uint8Array(len);for(let i=0;i<len;i++){a[i]=n&255;n=Math.floor(n/256);}return a;};
+    for(const f of files){
+      const name=enc.encode(f.name),data=f.bytes,crc=crc32(data),lho=offset;
+      push(le(0x04034b50,4));push(le(20,2));push(le(0,2));push(le(0,2));push(le(0,2));push(le(0,2));
+      push(le(crc,4));push(le(data.length,4));push(le(data.length,4));push(le(name.length,2));push(le(0,2));
+      push(name);push(data);
+      central.push([le(0x02014b50,4),le(20,2),le(20,2),le(0,2),le(0,2),le(0,2),le(0,2),le(crc,4),
+        le(data.length,4),le(data.length,4),le(name.length,2),le(0,2),le(0,2),le(0,2),le(0,2),le(0,4),le(lho,4),name]);
+    }
+    const cdStart=offset;let cdSize=0;
+    for(const c of central)for(const p of c){push(p);cdSize+=p.length;}
+    push(le(0x06054b50,4));push(le(0,2));push(le(0,2));push(le(files.length,2));push(le(files.length,2));
+    push(le(cdSize,4));push(le(cdStart,4));push(le(0,2));
+    const tot=chunks.reduce((a,c)=>a+c.length,0),out=new Uint8Array(tot);let o=0;
+    chunks.forEach(c=>{out.set(c,o);o+=c.length;});
+    return new Blob([out],{type:'application/zip'});
+  }
+
+  /* ---------- batch ---------- */
+  async function runBatch(mode){
+    if(busy||queue.length<2) return;
+    if(mode==='mp4' && !pickMime()){ setStatus('No video encoder here — try Chrome, Edge or Safari.'); return; }
+    busy=true; stopPlay(); enable(false);
+    const savedIdx=activeIndex, n=queue.length, out=[];
+    const fill = state.bg==='none' ? null : state.bg;
+    try{
+      for(let i=0;i<n;i++){
+        setStatus({rec:`Processing ${i+1}/${n} — ${queue[i].name||'image'}`});
+        await loadIntoGlobals(queue[i].dataURL);
+        await generate();
+        let blob,ext;
+        if(mode==='gif'){ blob=buildGIF(frames,state.fps,fill); ext='.gif'; }
+        else { const r=await recordVideoBlob((f)=>setStatus({rec:`Recording ${i+1}/${n} · ${(f/state.fps).toFixed(1)}s`})); blob=r.blob; ext='.'+r.ext; }
+        out.push({name:baseName(queue[i].name)+'-boil'+ext, bytes:new Uint8Array(await blob.arrayBuffer())});
+      }
+      const kb=Math.round(saveBlob(makeZip(out),'ink-boil-batch.zip')/1024);
+      statusEl.innerHTML=`Saved batch · <b>ink-boil-batch.zip</b> · ${n} files · ${kb} KB`;
+    }catch(e){ setStatus('Batch export hit an error — try the other format or fewer images.'); }
+    busy=false; enable(true);
+    if(savedIdx>=0){ activeIndex=savedIdx; await setActive(savedIdx); }
+  }
+
+  /* ---------- enable / batch UI ---------- */
+  function updateBatchUI(){
+    const many=queue.length>=2;
+    $('#batch').style.display=many?'flex':'none';
+    $('#batchCount').textContent=queue.length;
+    $('#batchGif').disabled=busy||!many;
+    $('#batchMp4').disabled=busy||!many;
+  }
+  function enable(on){
+    ['#cleanup','#intensity','#grain','#dur','#play','#exportMp4','#exportGif','#replace'].forEach(s=>$(s).disabled=!on);
+    updateBatchUI();
+  }
+
+  /* ---------- background control (palette only) ---------- */
+  function selectSwatch(btn){ [...$('#bg').children].forEach(c=>c.classList.remove('on')); btn.classList.add('on'); }
+  function updateHex(){ $('#hex').textContent = state.bg==='none' ? 'None' : state.bg.toUpperCase(); }
+
+  /* ---------- controls ---------- */
+  let regenT=null, cleanT=null;
+  const regenDeb=()=>{ clearTimeout(regenT); regenT=setTimeout(async()=>{await generate(); if(!playing)paint(frameIdx);},110); };
+  const cleanDeb=()=>{ clearTimeout(cleanT); cleanT=setTimeout(async()=>{ if(!img)return; processSource(); await generate(); if(!playing)paint(frameIdx); if(playing)setStatus('ready'); },160); };
+
+  $('#cleanup').addEventListener('input',e=>{ state.cleanup=+e.target.value; $('#vClean').textContent=state.cleanup; cleanDeb(); });
+  $('#intensity').addEventListener('input',e=>{ state.intensity=+e.target.value; $('#vInt').textContent=state.intensity; regenDeb(); });
+  $('#grain').addEventListener('input',e=>{ state.grain=+e.target.value; $('#vGrain').textContent=grainLabel(state.grain); regenDeb(); });
+  $('#dur').addEventListener('input',e=>{ state.dur=+e.target.value; $('#vDur').textContent=state.dur.toFixed(1)+'s'; });
+  $('#style').addEventListener('click',async e=>{ const b=e.target.closest('button'); if(!b||busy)return;
+    [...e.currentTarget.children].forEach(c=>c.classList.remove('on')); b.classList.add('on');
+    state.n=+b.dataset.n; state.fps=+b.dataset.fps; frameIdx=0; await generate();
+    if(playing)setStatus('ready'); else paint(0); });
+  $('#bg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
+    selectSwatch(b); state.bg=b.dataset.c;
+    updateHex(); frameEl.classList.toggle('checker',state.bg==='none'); if(!playing)paint(frameIdx); });
+  $('#play').addEventListener('click',()=>{ if(busy)return; playing?(stopPlay(),setStatus('Preview paused.')):(startPlay(),setStatus('ready')); });
+  $('#exportMp4').addEventListener('click',exportVideo);
+  $('#exportGif').addEventListener('click',exportGif);
+  $('#batchGif').addEventListener('click',()=>runBatch('gif'));
+  $('#batchMp4').addEventListener('click',()=>runBatch('mp4'));
+  $('#replace').addEventListener('click',()=>fileInput.click());
+  frameEl.classList.toggle('checker',state.bg==='none');   // transparent-by-default preview
+
+  drop.addEventListener('click',()=>fileInput.click());
+  fileInput.addEventListener('change',e=>{ if(e.target.files.length) loadFiles(e.target.files); fileInput.value=''; });
+  ['dragenter','dragover'].forEach(ev=>frameEl.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>frameEl.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+  frameEl.addEventListener('drop',e=>{ if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files); });
+  window.addEventListener('paste',e=>{ const f=[...(e.clipboardData?.items||[])].filter(i=>i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean); if(f.length) loadFiles(f); });
+})();
+</script>
+</body>
+</html>
