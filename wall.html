@@ -6,7 +6,7 @@
 <title>Ink Boil · Doodle Wall</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Shantell+Sans:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#E9E7DF; --panel:#F4F2EC; --ink:#17171B;
@@ -14,35 +14,55 @@
     --line:rgba(23,23,27,0.14); --line-soft:rgba(23,23,27,0.07);
     --mono:'Space Mono',ui-monospace,monospace;
     --sans:'Space Grotesk',system-ui,sans-serif;
+    --display:'Shantell Sans',cursive;
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
   .wrap{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:28px 24px 40px;display:flex;flex-direction:column;gap:22px}
-  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px;flex-wrap:wrap}
-  .title{font-weight:700;font-size:26px;letter-spacing:-0.02em;display:flex;align-items:baseline;gap:12px}
-  .title .mark{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--blue-line);border:2px solid var(--blue);transform:translateY(1px)}
-  .title a{color:inherit;text-decoration:none}
-  .tag{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue)}
-  a.tag{text-decoration:none}
-  a.tag:hover{text-decoration:underline}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:14px;display:flex;flex-direction:column;gap:10px}
-  .card .art{background:conic-gradient(from 0deg,#e6e4dc 0 25%,#f4f2ec 0 50%,#e6e4dc 0 75%,#f4f2ec 0) 0 0/20px 20px;border:1px solid var(--line-soft);border-radius:2px;display:flex;align-items:center;justify-content:center;min-height:180px;overflow:hidden}
-  .card img{max-width:100%;max-height:260px;display:block}
-  .card .who{font-family:var(--mono);font-size:11px;color:rgba(23,23,27,0.6);display:flex;justify-content:space-between;gap:8px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:14px;flex-wrap:wrap}
+  .brand{display:flex;flex-direction:column;gap:1px}
+  .wordmark{display:block;overflow:visible}
+  .wordmark text{font-family:var(--display);font-weight:700;font-size:36px;fill:var(--ink)}
+  .sub{font-size:13.5px;color:rgba(23,23,27,0.66)}
+  .backlink{font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue);text-decoration:none;border-bottom:1px solid var(--blue-line);padding-bottom:2px;transition:border-color 150ms ease}
+  .backlink:hover{border-bottom-color:var(--blue)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+  .card{--tilt:0deg;background:#FBFAF6;border:1px solid var(--line);border-radius:2px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 3px rgba(23,23,27,0.07);transform:rotate(var(--tilt));transition:transform 180ms ease,box-shadow 180ms ease;animation:cardIn 300ms var(--ease-out) backwards}
+  .card:nth-child(3n){--tilt:-0.7deg}
+  .card:nth-child(3n+1){--tilt:0.5deg}
+  .card:nth-child(3n+2){--tilt:-0.3deg}
+  @media(hover:hover) and (pointer:fine){
+    .card:hover{transform:rotate(0deg) translateY(-2px);box-shadow:0 6px 16px rgba(23,23,27,0.12)}
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px) rotate(var(--tilt))}}
+  .card .art{display:flex;align-items:center;justify-content:center;height:210px;overflow:hidden}
+  .card img{max-width:100%;max-height:100%;display:block}
+  .card .who{font-family:var(--mono);font-size:11px;color:rgba(23,23,27,0.62);display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line-soft);padding-top:9px}
   .card .who b{color:var(--ink)}
-  .empty{font-family:var(--mono);font-size:12px;color:rgba(23,23,27,0.5);text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:2px;line-height:1.8}
-  footer{font-family:var(--mono);font-size:10.5px;color:rgba(23,23,27,0.4);text-align:center;padding-bottom:8px;line-height:1.7}
+  .empty{font-size:13.5px;color:rgba(23,23,27,0.65);text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:2px;line-height:1.8}
+  footer{font-size:12.5px;color:rgba(23,23,27,0.62);text-align:center;padding-bottom:8px;line-height:1.7}
+  a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none;animation:none}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="chromeBoil" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+    <feTurbulence id="chromeNoise" type="fractalNoise" baseFrequency="0.024" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs></svg>
 <div class="wrap">
   <header>
-    <div class="title"><span class="mark"></span><a href="/">Ink Boil</a> · Doodle Wall</div>
-    <a class="tag" href="/">← make your own</a>
+    <div class="brand">
+      <svg class="wordmark" width="230" height="44" viewBox="0 0 280 54" role="img" aria-label="Doodle Wall"><text x="4" y="38" filter="url(#chromeBoil)">Doodle Wall</text></svg>
+      <div class="sub">Drawn by hand, scanned, and boiled — by people like you.</div>
+    </div>
+    <a class="backlink" href="/">← Ink Boil · make your own</a>
   </header>
   <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" style="display:none">Nothing on the wall yet.<br>Draw something, boil it, and hit “Submit to wall”.</div>
+  <div class="empty" id="empty" style="display:none">Nothing on the wall yet.<br>Draw something, boil it, and hit “Pin to the Doodle Wall”.</div>
   <footer>Every doodle here was drawn by hand, scanned, and boiled.</footer>
 </div>
 <script>
@@ -51,8 +71,10 @@
   try{
     const r=await fetch('/api/wall'); const {items=[]}=await r.json();
     if(!items.length){ empty.style.display='block'; return; }
+    let idx=0;
     for(const it of items){
       const card=document.createElement('div'); card.className='card';
+      card.style.animationDelay=Math.min(idx++*45,360)+'ms';
       const art=document.createElement('div'); art.className='art';
       const img=document.createElement('img'); img.src=it.gifUrl; img.alt=it.name?`Doodle by ${it.name}`:'Doodle';
       img.loading='lazy';
@@ -65,6 +87,12 @@
       grid.appendChild(card);
     }
   }catch(e){ empty.style.display='block'; empty.textContent='Could not load the wall right now.'; }
+
+  const chromeNoise=document.getElementById('chromeNoise');
+  if(chromeNoise && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const seeds=[7,19,42]; let si=0;
+    setInterval(()=>{ chromeNoise.setAttribute('seed',seeds[si=(si+1)%seeds.length]); },140);
+  }
 })();
 </script>
 </body>
