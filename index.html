@@ -164,7 +164,7 @@
             </g>
           </svg>
           <h2>Drop drawings here</h2>
-          <p>One or several. PNG or JPG. Ink on white, or a photo of art on a table — it lifts the subject off its background either way. Leave a little margin so the edges can boil.</p>
+          <p>One or several. PNG or JPG. A scan, or just a photo of the drawing on a table — either way, only the ink is lifted. The paper stays behind.</p>
         </div>
       </div>
       <div class="tray" id="tray"></div>
@@ -323,13 +323,13 @@
       }
     }
 
-    // (b) remove the background — statistically, not by fixed offsets.
-    //     Border ring tells us if the ground is coloured (photo: paper on
-    //     wood) or neutral (scan: ink on paper). Neutral grounds get proper
-    //     document binarization: Otsu's method finds where the INK cluster
-    //     and PAPER cluster actually sit, the alpha ramp is anchored to
-    //     them (ink level -> fully solid, paper's own variance -> clear),
-    //     and a despeckle pass deletes isolated flecks of texture.
+    // (b) lift the ink, drop every ground. The border ring classifies the
+    //     ground: coloured (photo of paper on a table, or a scan of toned
+    //     paper) gets chroma-keyed away first; then, in every case, Otsu's
+    //     method splits what remains into an INK cluster and a PAPER
+    //     cluster and the alpha ramp is anchored to them (ink level ->
+    //     fully solid, paper's own variance -> clear). A despeckle pass
+    //     deletes isolated flecks of texture. The output is ink, only.
     if(!hadAlpha){
       let br=0,bg2=0,bb=0,bn=0;
       const band=Math.max(2,Math.round(Math.min(W,H)*0.045));
@@ -366,11 +366,11 @@
           let a=(dchr-nearC)/spanC; a=a<0?0:a>1?1:a;
           d[i+3]=Math.round(a*255);
         }
-        // What survived the chroma key is usually a sheet of paper with ink
-        // on it. If its luminance splits into a bright paper cluster and a
-        // dark ink cluster, lift the ink and let the paper go too.
+        // What survived the chroma key is a sheet of paper with ink on it:
+        // lift the ink, let the paper go. Only a near-flat region (no real
+        // ink/paper split) is left untouched.
         const st=inkStats(d,true);
-        if(st && st.total>500 && st.paperMed>170 && st.gap>40){
+        if(st && st.total>500 && st.gap>32){
           const solidL=st.inkMed+st.gap*0.40, clearL=st.paperMed-Math.max(10,st.gap*(0.20+s*0.35));
           const span=Math.max(1,clearL-solidL);
           for(let i=0;i<d.length;i+=4){
