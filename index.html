@@ -61,6 +61,7 @@
   input[type=range].g::-moz-range-thumb{background:#27853f}
   input[type=range].b::-moz-range-thumb{background:#2E6389}
   .ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:rgba(23,23,27,0.4);text-transform:uppercase;letter-spacing:0.04em}
+  .hint{font-family:var(--mono);font-size:10.5px;color:rgba(23,23,27,0.55);line-height:1.6;border-left:2px solid var(--blue-line);padding-left:9px}
   .seg{display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden}
   .seg button{flex:1;background:transparent;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;padding:9px 4px;color:var(--ink);border-right:1px solid var(--line);transition:background .12s,color .12s}
   .seg button:last-child{border-right:none}
@@ -124,6 +125,15 @@
     </div>
 
     <div class="panel">
+      <div class="ctl">
+        <label>Effect</label>
+        <div class="seg" id="effect">
+          <button data-e="boil" class="on">Boil</button>
+          <button data-e="flipbook">Flipbook</button>
+        </div>
+        <div class="hint" id="effectHint" style="display:none">Draw the same doodle 4–5 times on one sheet, photograph it, and each drawing becomes a frame.</div>
+      </div>
+
       <details class="pro">
         <summary>Fine tune</summary>
         <div class="inner">
@@ -159,17 +169,17 @@
       </details>
 
       <div class="actions">
-        <button class="btn rec" id="exportMp4" disabled>Export video · MP4</button>
-        <button class="btn alpha" id="exportGif" disabled>Export loop · GIF</button>
-        <button class="btn ghost" id="wallBtn" disabled style="display:none">Submit to the Doodle Wall</button>
+        <button class="btn rec" id="exportMp4" disabled>Save as video</button>
+        <button class="btn alpha" id="exportGif" disabled>Save as GIF</button>
+        <button class="btn ghost" id="wallBtn" disabled style="display:none">Pin to the Doodle Wall</button>
         <button class="btn ghost" id="sendBtn" disabled>Send to a friend</button>
-        <button class="btn ghost" id="replace" disabled>Add drawings</button>
+        <button class="btn ghost" id="replace" disabled>Add more drawings…</button>
       </div>
 
       <div class="batch" id="batch">
         <div class="bh"><span>Batch · same settings</span><span><b id="batchCount">0</b> images</span></div>
-        <button class="btn alpha" id="batchGif">Export all · GIF · ZIP</button>
-        <button class="btn ghost" id="batchMp4">Export all · MP4 · ZIP</button>
+        <button class="btn alpha" id="batchGif">Save all as GIFs · ZIP</button>
+        <button class="btn ghost" id="batchMp4">Save all as videos · ZIP</button>
       </div>
 
       <div class="status" id="status">Load a drawing to begin.</div>
@@ -184,7 +194,7 @@
 
 <div class="overlay" id="submitOverlay">
   <div class="submitbox" id="submitBox">
-    <div class="bh">Submit to the Doodle Wall</div>
+    <div class="bh">Pin to the Doodle Wall</div>
     <input type="text" id="subName" maxlength="40" placeholder="Your name (optional)">
     <input type="text" id="subLoc" maxlength="40" placeholder="Where are you? (optional)">
     <div class="row2">
@@ -209,12 +219,13 @@
 
   const queue = [];
   let activeIndex = -1;
-  let img = null, W = 0, H = 0, W0 = 0, H0 = 0, cleanURL = null, srcHadAlpha = false;
+  let img = null, W = 0, H = 0, W0 = 0, H0 = 0, cropW = 0, cropH = 0, cleanURL = null, srcHadAlpha = false;
   let frames = [], frameIdx = 0;
   let playing = false, busy = false, rafId = null, lastStep = 0;
   let regenToken = 0;
 
-  const state = { cleanup:22, intensity:9, grain:12, n:4, fps:12, dur:3 };
+  const state = { effect:'boil', cleanup:22, intensity:9, grain:12, n:4, fps:12, dur:3 };
+  const effFps = () => state.effect==='flipbook' ? 6 : state.fps;   // flipbooks flip slower
   const grainToFreq = g => (g/1000).toFixed(4);
   const grainLabel  = g => g<18?'Broad':g<32?'Med':'Fine';
   const baseName = n => (n||'image').replace(/\.[^.]+$/,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'image';
@@ -313,6 +324,7 @@
     }
     tctx.putImageData(id,0,0);
     cleanURL = cropToContent(tmp,d).toDataURL('image/png');
+    cropW=W; cropH=H;
   }
 
   /* ---------- crop to the composition + a little air ---------- */
@@ -393,13 +405,118 @@
       } finally{URL.revokeObjectURL(url);}
     }
   }
-  async function generate(){
+  function setDims(w,h){ W=w; H=h; cv.width=w; cv.height=h; }
+  async function genBoil(){
+    setDims(cropW,cropH);
+    const seeds=SEEDS.slice(0,state.n);
+    return Promise.all(seeds.map(s=>svgToBitmap(buildSVG(s))));
+  }
+
+  /* ---------- flipbook: one photo, several drawings -> frames ---------- */
+  async function keyedCanvas(){
+    const im=await decodeImage(cleanURL);
+    const c=document.createElement('canvas'); c.width=cropW; c.height=cropH;
+    c.getContext('2d').drawImage(im,0,0);
+    return c;
+  }
+  function cropCanvas(src){
+    const w=src.width,h=src.height;
+    const d=src.getContext('2d').getImageData(0,0,w,h).data;
+    let x0=w,y0=h,x1=-1,y1=-1;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++)
+      if(d[(y*w+x)*4+3]>16){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+    if(x1<0) return null;
+    const pad=Math.round(Math.max(x1-x0,y1-y0)*0.08)+8;
+    x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad); x1=Math.min(w-1,x1+pad); y1=Math.min(h-1,y1+pad);
+    const c=document.createElement('canvas'); c.width=x1-x0+1; c.height=y1-y0+1;
+    c.getContext('2d').drawImage(src,x0,y0,c.width,c.height,0,0,c.width,c.height);
+    return c;
+  }
+  async function genFlipbook(){
+    const base=await keyedCanvas(), w=base.width, h=base.height;
+    const data=base.getContext('2d').getImageData(0,0,w,h).data;
+    // coarse mask grid, dilated so strokes of one drawing merge into one blob
+    const cell=Math.max(2,Math.round(Math.max(w,h)/200));
+    const gw=Math.ceil(w/cell), gh=Math.ceil(h/cell);
+    let mask=new Uint8Array(gw*gh);
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++)
+      if(data[(y*w+x)*4+3]>96) mask[((y/cell)|0)*gw+((x/cell)|0)]=1;
+    const R=Math.max(4,Math.round(Math.max(gw,gh)*0.05));
+    for(let it=0;it<R;it++){
+      const nm=new Uint8Array(mask);
+      for(let y=0;y<gh;y++) for(let x=0;x<gw;x++){
+        if(mask[y*gw+x]) continue;
+        if((x>0&&mask[y*gw+x-1])||(x<gw-1&&mask[y*gw+x+1])||(y>0&&mask[(y-1)*gw+x])||(y<gh-1&&mask[(y+1)*gw+x])) nm[y*gw+x]=1;
+      }
+      mask=nm;
+    }
+    // label the merged blobs
+    const lbl=new Int32Array(gw*gh); const stack=new Int32Array(gw*gh);
+    let cur=0; const groups=[];
+    for(let p=0;p<gw*gh;p++){
+      if(lbl[p]||!mask[p]) continue;
+      cur++; let sp=0; stack[sp++]=p; lbl[p]=cur;
+      let minx=gw,miny=gh,maxx=0,maxy=0;
+      while(sp){
+        const q=stack[--sp], qx=q%gw, qy=(q-qx)/gw;
+        if(qx<minx)minx=qx; if(qx>maxx)maxx=qx; if(qy<miny)miny=qy; if(qy>maxy)maxy=qy;
+        for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+          const xx=qx+dx,yy=qy+dy;
+          if(xx<0||xx>=gw||yy<0||yy>=gh)continue;
+          const r=yy*gw+xx;
+          if(mask[r]&&!lbl[r]){ lbl[r]=cur; stack[sp++]=r; }
+        }
+      }
+      groups.push({id:cur,minx,miny,maxx,maxy,cx:(minx+maxx)/2,cy:(miny+maxy)/2,h:maxy-miny+1});
+    }
+    if(!groups.length) return null;
+    // reading order: band into rows, then left-to-right
+    const rowTol=Math.max(2,groups.reduce((a,g)=>a+g.h,0)/groups.length*0.6);
+    groups.sort((a,b)=>a.cy-b.cy);
+    const rows=[]; let row=null;
+    for(const g of groups){
+      if(!row||g.cy-row.cy>rowTol){ row={cy:g.cy,items:[]}; rows.push(row); }
+      row.items.push(g); row.cy=(row.cy+g.cy)/2;
+    }
+    const ordered=rows.flatMap(r=>r.items.sort((a,b)=>a.cx-b.cx)).slice(0,10);
+    // split full-res pixels by blob label, crop each drawing
+    const parts=[];
+    for(const g of ordered){
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const cx2=c.getContext('2d');
+      const id2=cx2.createImageData(w,h), d2=id2.data;
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        const i=(y*w+x)*4;
+        if(data[i+3]&&lbl[((y/cell)|0)*gw+((x/cell)|0)]===g.id){
+          d2[i]=data[i]; d2[i+1]=data[i+1]; d2[i+2]=data[i+2]; d2[i+3]=data[i+3];
+        }
+      }
+      cx2.putImageData(id2,0,0);
+      const cr=cropCanvas(c); if(cr) parts.push(cr);
+    }
+    if(!parts.length) return null;
+    // compose on a common stage, each drawing centered
+    const fw=Math.max(...parts.map(p=>p.width)), fh=Math.max(...parts.map(p=>p.height));
+    setDims(fw,fh);
+    return parts.map(p=>{
+      const c=document.createElement('canvas'); c.width=fw; c.height=fh;
+      c.getContext('2d').drawImage(p,(fw-p.width)/2,(fh-p.height)/2);
+      return c;
+    });
+  }
+
+  // generations are serialized: a half-finished build can never mutate the
+  // canvas after a newer effect/setting has taken over
+  let genChain=Promise.resolve();
+  function generate(){ genChain=genChain.then(rawGenerate,()=>{}); return genChain; }
+  async function rawGenerate(){
     if(!img||!cleanURL) return;
-    const token=++regenToken, seeds=SEEDS.slice(0,state.n);
-    // the source is already keyed, so boiled frames need no further matting
-    const next=await Promise.all(seeds.map(s=>svgToBitmap(buildSVG(s))));
+    const token=++regenToken;
+    let next=null;
+    if(state.effect==='flipbook') next=await genFlipbook();
+    else next=await genBoil();
     if(token!==regenToken) return;
-    frames=next; if(frameIdx>=frames.length) frameIdx=0;
+    frames=next||[]; if(frameIdx>=frames.length) frameIdx=0;
   }
 
   /* ---------- render ---------- */
@@ -409,7 +526,7 @@
   }
   function loop(t){
     if(!playing){rafId=null;return;}
-    if(t-lastStep>=1000/state.fps){ lastStep=t; frameIdx=(frameIdx+1)%Math.max(1,frames.length); paint(frameIdx); }
+    if(t-lastStep>=1000/effFps()){ lastStep=t; frameIdx=(frameIdx+1)%Math.max(1,frames.length); paint(frameIdx); }
     rafId=requestAnimationFrame(loop);
   }
   function startPlay(){ if(playing||!frames.length)return; frameEl.classList.add('checker'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); }
@@ -478,7 +595,14 @@
 
   /* ---------- status ---------- */
   function setStatus(kind){
-    if(kind==='ready') statusEl.innerHTML=`<span class="dot" style="background:var(--blue)"></span>Live preview · ${state.fps} fps`;
+    if(kind==='ready'){
+      if(state.effect==='flipbook'&&frames.length<2){
+        statusEl.innerHTML='Found <b>one</b> drawing — flipbook wants a photo with the same doodle drawn 4–5 times.';
+        return;
+      }
+      const extra = state.effect==='flipbook' ? ` · ${frames.length} drawings` : '';
+      statusEl.innerHTML=`<span class="dot" style="background:var(--blue)"></span>Live preview · ${effFps()} fps${extra}`;
+    }
     else if(kind && kind.rec) statusEl.innerHTML=`<span class="live"><span class="dot pulse" style="background:var(--blue)"></span>${kind.rec}</span>`;
     else statusEl.textContent=kind;
   }
@@ -497,7 +621,7 @@
     const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000});
     const chunks=[]; rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
     const done=new Promise(res=>rec.onstop=res); rec.start();
-    const fps=state.fps,total=Math.round(fps*state.dur),stepMs=1000/fps;
+    const fps=effFps(),total=Math.round(fps*state.dur),stepMs=1000/fps;
     let next=performance.now();
     for(let f=0;f<total;f++){
       ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);          // video has no alpha
@@ -514,12 +638,12 @@
     if(!pickMime()){ setStatus('No video encoder here — try Chrome, Edge or Safari.'); return; }
     busy=true; stopPlay(); enable(false); $('#exportMp4').textContent='Recording…';
     try{
-      const {blob,ext}=await recordVideoBlob((f)=>setStatus({rec:`Recording ${(f/state.fps).toFixed(1)}s / ${state.dur.toFixed(1)}s`}));
+      const {blob,ext}=await recordVideoBlob((f)=>setStatus({rec:`Recording ${(f/effFps()).toFixed(1)}s / ${state.dur.toFixed(1)}s`}));
       const kb=Math.round(saveBlob(blob,'ink-boil.'+ext)/1024);
       const note = ext!=='mp4' ? ' · (browser can’t do MP4, saved WebM)' : ' · (video has no alpha, used white)';
       statusEl.innerHTML=`Saved <b>ink-boil.${ext}</b> · ${state.dur.toFixed(1)}s · ${kb} KB`+note;
     }catch(e){ setStatus('Video export failed on this browser.'); }
-    busy=false; enable(true); $('#exportMp4').textContent='Export video · MP4'; startPlay();
+    busy=false; enable(true); $('#exportMp4').textContent='Save as video'; startPlay();
   }
 
   /* ---------- CRC32 (used by ZIP) ---------- */
@@ -607,10 +731,10 @@
     if(busy||!img) return;
     busy=true; stopPlay(); enable(false); $('#exportGif').textContent='Building…';
     setStatus({rec:'Building GIF…'}); await sleep(20);
-    const blob=buildGIF(frames,state.fps);
+    const blob=buildGIF(frames,effFps());
     const kb=Math.round(saveBlob(blob,'ink-boil-loop.gif')/1024);
     statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · transparent · ${frames.length} frames · ${kb} KB`;
-    busy=false; enable(true); $('#exportGif').textContent='Export loop · GIF'; startPlay();
+    busy=false; enable(true); $('#exportGif').textContent='Save as GIF'; startPlay();
   }
 
   /* ---------- send to a friend (native share sheet) ---------- */
@@ -622,7 +746,7 @@
     busy=true; stopPlay(); enable(false); $('#sendBtn').textContent='Preparing…';
     try{
       // built synchronously so the browser still counts this as the tap
-      const blob=buildGIF(frames,state.fps);
+      const blob=buildGIF(frames,effFps());
       const file=new File([blob],'ink-boil.gif',{type:'image/gif'});
       if(canShareGif){
         await navigator.share({files:[file],title:'Ink Boil doodle'});
@@ -645,7 +769,7 @@
     busy=true; stopPlay(); enable(false); $('#subGo').textContent='Sending…';
     setStatus({rec:'Boiling your doodle onto the wall…'}); await sleep(20);
     try{
-      const blob=buildGIF(frames,state.fps);
+      const blob=buildGIF(frames,effFps());
       if(blob.size>3_000_000) throw new Error('too big');
       const dataURL=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
       const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -694,8 +818,8 @@
         await loadIntoGlobals(queue[i].dataURL);
         await generate();
         let blob,ext;
-        if(mode==='gif'){ blob=buildGIF(frames,state.fps); ext='.gif'; }
-        else { const r=await recordVideoBlob((f)=>setStatus({rec:`Recording ${i+1}/${n} · ${(f/state.fps).toFixed(1)}s`})); blob=r.blob; ext='.'+r.ext; }
+        if(mode==='gif'){ blob=buildGIF(frames,effFps()); ext='.gif'; }
+        else { const r=await recordVideoBlob((f)=>setStatus({rec:`Recording ${i+1}/${n} · ${(f/effFps()).toFixed(1)}s`})); blob=r.blob; ext='.'+r.ext; }
         out.push({name:baseName(queue[i].name)+'-boil'+ext, bytes:new Uint8Array(await blob.arrayBuffer())});
       }
       const kb=Math.round(saveBlob(makeZip(out),'ink-boil-batch.zip')/1024);
@@ -727,6 +851,13 @@
   $('#intensity').addEventListener('input',e=>{ state.intensity=+e.target.value; $('#vInt').textContent=state.intensity; regenDeb(); });
   $('#grain').addEventListener('input',e=>{ state.grain=+e.target.value; $('#vGrain').textContent=grainLabel(state.grain); regenDeb(); });
   $('#dur').addEventListener('input',e=>{ state.dur=+e.target.value; $('#vDur').textContent=state.dur.toFixed(1)+'s'; });
+  $('#effect').addEventListener('click',async e=>{ const b=e.target.closest('button'); if(!b||busy)return;
+    [...e.currentTarget.children].forEach(c=>c.classList.remove('on')); b.classList.add('on');
+    state.effect=b.dataset.e;
+    $('#effectHint').style.display = state.effect==='flipbook' ? 'block' : 'none';
+    if(!img) return;
+    frameIdx=0; setStatus('Rebuilding…'); await generate();
+    if(playing)setStatus('ready'); else { paint(0); startPlay(); setStatus('ready'); } });
   $('#style').addEventListener('click',async e=>{ const b=e.target.closest('button'); if(!b||busy)return;
     [...e.currentTarget.children].forEach(c=>c.classList.remove('on')); b.classList.add('on');
     state.n=+b.dataset.n; state.fps=+b.dataset.fps; frameIdx=0; await generate();
