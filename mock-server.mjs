@@ -9,6 +9,7 @@ import crypto from 'node:crypto';
 const ROOT = path.dirname(decodeURIComponent(new URL(import.meta.url).pathname));
 const STORE = path.join(ROOT, '.mock-blob');
 const PW = 'test';
+const PORT = Number(process.env.PORT) || 3131;
 for (const d of ['pending', 'approved']) fs.mkdirSync(path.join(STORE, d), { recursive: true });
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.gif': 'image/gif', '.png': 'image/png' };
@@ -39,9 +40,19 @@ http.createServer(async (req, res) => {
     if (url.pathname === '/api/wall') return send(200, { items: listMeta('approved') });
     if (url.pathname === '/api/admin') {
       if (req.headers['x-admin-password'] !== PW) return send(401, { error: 'unauthorized' });
-      if (req.method === 'GET') return send(200, { items: listMeta('pending') });
+      if (req.method === 'GET') {
+        const scope = url.searchParams.get('scope') === 'approved' ? 'approved' : 'pending';
+        return send(200, { scope, items: listMeta(scope) });
+      }
       const { id, action } = await body(req);
       if (!/^[0-9a-f-]{36}$/.test(id || '')) return send(400, { error: 'bad id' });
+      if (!['approve', 'deny', 'remove'].includes(action)) return send(400, { error: 'bad action' });
+      if (action === 'remove') {
+        const ag = path.join(STORE, 'approved', id + '.gif'), aj = path.join(STORE, 'approved', id + '.json');
+        if (!fs.existsSync(aj)) return send(404, { error: 'not on the wall' });
+        for (const f of [ag, aj]) if (fs.existsSync(f)) fs.unlinkSync(f);
+        return send(200, { ok: true });
+      }
       const pg = path.join(STORE, 'pending', id + '.gif'), pj = path.join(STORE, 'pending', id + '.json');
       if (action === 'approve' && fs.existsSync(pg) && fs.existsSync(pj)) {
         const meta = JSON.parse(fs.readFileSync(pj, 'utf8'));
@@ -64,4 +75,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     return send(500, { error: 'server error' });
   }
-}).listen(3131, () => console.log('inkboil mock on http://localhost:3131 (admin pw: test)'));
+}).listen(PORT, () => console.log(`inkboil mock on http://localhost:${PORT} (admin pw: test)`));

@@ -41,6 +41,14 @@
   .msg{font-family:var(--mono);font-size:12px;color:rgba(23,23,27,0.55);text-align:center;padding:40px 20px;border:1px dashed var(--line);border-radius:2px}
   .err{color:var(--red)}
   #board{display:none;flex-direction:column;gap:18px}
+  .tabs{display:flex;gap:0;border:1px solid var(--line);border-radius:2px;overflow:hidden;align-self:flex-start}
+  .tabs button{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:10px 18px;
+    background:transparent;border:none;border-right:1px solid var(--line);color:var(--ink);cursor:pointer;transition:background .12s,color .12s}
+  .tabs button:last-child{border-right:none}
+  .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+  .tabs .n{opacity:.6;margin-left:6px}
+  .note{font-family:var(--mono);font-size:11px;color:rgba(23,23,27,0.5)}
+  .card .row .btn.arm{background:var(--red);border-color:var(--red);color:#fff}
 </style>
 </head>
 <body>
@@ -58,17 +66,23 @@
   </div>
 
   <div id="board">
+    <div class="tabs" role="tablist">
+      <button id="tabPending" role="tab" aria-selected="true">Pending<span class="n" id="nPending"></span></button>
+      <button id="tabApproved" role="tab" aria-selected="false">On the wall<span class="n" id="nApproved"></span></button>
+    </div>
+    <div class="note" id="note" style="display:none">Taking a doodle down deletes it for good. The public wall catches up within a minute.</div>
     <div class="grid" id="grid"></div>
-    <div class="msg" id="empty" style="display:none">No pending submissions. All clear.</div>
+    <div class="msg" id="empty" style="display:none"></div>
   </div>
 </div>
 <script>
 (() => {
   const $=s=>document.querySelector(s);
   let pw=sessionStorage.getItem('inkboil-admin')||'';
+  let scope='pending';
 
-  async function api(method,body){
-    const r=await fetch('/api/admin',{method,
+  async function api(method,body,q){
+    const r=await fetch('/api/admin'+(q||''),{method,
       headers:{'Content-Type':'application/json','x-admin-password':pw},
       body:body?JSON.stringify(body):undefined});
     if(r.status===401) throw new Error('unauthorized');
@@ -83,24 +97,56 @@
     const loc=document.createElement('span'); loc.textContent=it.location||'';
     who.appendChild(nm); who.appendChild(loc); c.appendChild(who);
     const row=document.createElement('div'); row.className='row';
-    const ok=document.createElement('button'); ok.className='btn ok'; ok.textContent='Approve';
-    const no=document.createElement('button'); no.className='btn no'; no.textContent='Deny';
-    ok.onclick=()=>act(it.id,'approve',c); no.onclick=()=>act(it.id,'deny',c);
-    row.appendChild(ok); row.appendChild(no); c.appendChild(row);
+    if(scope==='pending'){
+      const ok=document.createElement('button'); ok.className='btn ok'; ok.textContent='Approve';
+      const no=document.createElement('button'); no.className='btn no'; no.textContent='Deny';
+      ok.onclick=()=>act(it.id,'approve',c); no.onclick=()=>act(it.id,'deny',c);
+      row.appendChild(ok); row.appendChild(no);
+    } else {
+      // taking it down is final, so the button arms itself before it fires
+      const rm=document.createElement('button'); rm.className='btn no'; rm.textContent='Take down';
+      let armed=false, t=0;
+      rm.onclick=()=>{
+        if(!armed){ armed=true; rm.classList.add('arm'); rm.textContent='Take down — sure?';
+          t=setTimeout(()=>{ armed=false; rm.classList.remove('arm'); rm.textContent='Take down'; },4000); return; }
+        clearTimeout(t); act(it.id,'remove',c);
+      };
+      row.appendChild(rm);
+    }
+    c.appendChild(row);
     return c;
   }
   async function act(id,action,el){
     el.style.opacity=.4; el.querySelectorAll('button').forEach(b=>b.disabled=true);
-    try{ await api('POST',{id,action}); el.remove(); if(!$('#grid').children.length) $('#empty').style.display='block'; }
+    try{
+      const r=await api('POST',{id,action});
+      if(r&&r.error) throw new Error(r.error);
+      el.remove(); count(scope,$('#grid').children.length);
+      if(!$('#grid').children.length) $('#empty').style.display='block';
+      if(action==='approve') count('approved',null);
+    }
     catch(e){ el.style.opacity=1; el.querySelectorAll('button').forEach(b=>b.disabled=false); }
   }
-  async function load(){
-    const {items=[]}=await api('GET');
+  function count(which,n){
+    const el=which==='pending'?$('#nPending'):$('#nApproved');
+    el.textContent = n===null||n===undefined ? '' : '· '+n;
+  }
+  async function load(next){
+    if(next) scope=next;
+    const {items=[]}=await api('GET',null,scope==='approved'?'?scope=approved':'');
+    $('#tabPending').setAttribute('aria-selected',String(scope==='pending'));
+    $('#tabApproved').setAttribute('aria-selected',String(scope==='approved'));
+    $('#note').style.display=scope==='approved'?'block':'none';
+    count(scope,items.length);
     const grid=$('#grid'); grid.innerHTML='';
     items.forEach(it=>grid.appendChild(card(it)));
+    $('#empty').textContent = scope==='approved'
+      ? 'Nothing on the wall yet.' : 'No pending submissions. All clear.';
     $('#empty').style.display=items.length?'none':'block';
     $('#login').style.display='none'; $('#board').style.display='flex';
   }
+  $('#tabPending').onclick=()=>load('pending').catch(()=>{});
+  $('#tabApproved').onclick=()=>load('approved').catch(()=>{});
   $('#enter').onclick=async()=>{
     pw=$('#pw').value;
     try{ await load(); sessionStorage.setItem('inkboil-admin',pw); }

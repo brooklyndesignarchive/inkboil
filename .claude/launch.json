@@ -5,7 +5,8 @@
       "name": "inkboil",
       "runtimeExecutable": "node",
       "runtimeArgs": ["mock-server.mjs"],
-      "port": 3131
+      "port": 3131,
+      "autoPort": true
     }
   ]
 }
