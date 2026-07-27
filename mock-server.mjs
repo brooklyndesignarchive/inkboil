@@ -19,7 +19,7 @@ const body = req => new Promise(res => { let b = ''; req.on('data', c => b += c)
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const send = (code, data, type = 'application/json') => { res.writeHead(code, { 'Content-Type': type }); res.end(type === 'application/json' ? JSON.stringify(data) : data); };
+  const send = (code, data, type = 'application/json') => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(type === 'application/json' ? JSON.stringify(data) : data); };
 
   try {
     if (url.pathname === '/api/submit' && req.method === 'POST') {
