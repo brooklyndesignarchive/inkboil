@@ -65,11 +65,6 @@
   .seg button{flex:1;background:transparent;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;padding:9px 4px;color:var(--ink);border-right:1px solid var(--line);transition:background .12s,color .12s}
   .seg button:last-child{border-right:none}
   .seg button.on{background:var(--blue);color:#fff}
-  .swatches{display:flex;gap:8px;flex-wrap:wrap}
-  .swatches button{width:30px;height:30px;border-radius:50%;cursor:pointer;border:1px solid var(--line);position:relative}
-  .swatches button.none{background:conic-gradient(from 0deg,#dcdad2 0 25%,#fff 0 50%,#dcdad2 0 75%,#fff 0) 0 0/10px 10px}
-  .swatches button.on{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--blue)}
-  .swatches button.cust::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;mix-blend-mode:difference;font-family:var(--mono);font-size:13px}
   .rgb{display:flex;flex-direction:column;gap:7px}
   .rgbrow{display:flex;align-items:center;gap:10px}
   .rgbrow>span{font-family:var(--mono);font-size:10px;width:9px;color:var(--ink)}
@@ -88,9 +83,11 @@
   .btn.alpha{background:transparent;border-color:var(--blue);color:var(--blue)}
   .btn:disabled{opacity:.35;cursor:not-allowed}
   .batch{display:none;flex-direction:column;gap:9px;border:1px solid var(--blue);border-radius:2px;padding:14px;background:rgba(46,99,137,0.05)}
-  .submitbox{display:none;flex-direction:column;gap:9px;border:1px solid var(--blue);border-radius:2px;padding:14px;background:rgba(46,99,137,0.05)}
+  .overlay{position:fixed;inset:0;background:rgba(23,23,27,0.38);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+  .overlay.show{display:flex}
+  .submitbox{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:2px;padding:22px;background:var(--panel);width:100%;max-width:400px;box-shadow:0 12px 40px rgba(23,23,27,0.25)}
   .submitbox .bh{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue)}
-  .submitbox input{font-family:var(--mono);font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:2px;background:#fff;outline:none}
+  .submitbox input{font-family:var(--mono);font-size:12.5px;padding:10px 12px;border:1px solid var(--line);border-radius:2px;background:#fff;outline:none}
   .submitbox input:focus{border-color:var(--blue)}
   .submitbox .row2{display:flex;gap:8px}
   .submitbox .row2 .btn{flex:1}
@@ -127,22 +124,8 @@
     </div>
 
     <div class="panel">
-      <div class="ctl">
-        <div class="row"><label>Background</label><span class="val" id="hex">None</span></div>
-        <div class="swatches" id="bg">
-          <button data-c="none" class="none on" title="None (transparent)"></button>
-          <button data-c="#AECB52" style="background:#AECB52" title="Lime"></button>
-          <button data-c="#9BBDF7" style="background:#9BBDF7" title="Sky"></button>
-          <button data-c="#EFFC9E" style="background:#EFFC9E" title="Butter"></button>
-          <button data-c="#7A3B3B" style="background:#7A3B3B" title="Brick"></button>
-          <button data-c="#EE9539" style="background:#EE9539" title="Marmalade"></button>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
       <details class="pro">
-        <summary>Pro tools</summary>
+        <summary>Fine tune</summary>
         <div class="inner">
           <div class="ctl">
             <div class="row"><label>Clip length</label><span class="val" id="vDur">3.0s</span></div>
@@ -176,22 +159,10 @@
       </details>
 
       <div class="actions">
-        <button class="btn ghost" id="play" disabled>Pause preview</button>
         <button class="btn rec" id="exportMp4" disabled>Export video · MP4</button>
         <button class="btn alpha" id="exportGif" disabled>Export loop · GIF</button>
         <button class="btn ghost" id="wallBtn" disabled style="display:none">Submit to the Doodle Wall</button>
         <button class="btn ghost" id="replace" disabled>Add drawings</button>
-      </div>
-
-      <div class="submitbox" id="submitBox">
-        <div class="bh">Submit to the Doodle Wall</div>
-        <input type="text" id="subName" maxlength="40" placeholder="Your name (optional)">
-        <input type="text" id="subLoc" maxlength="40" placeholder="Where are you? (optional)">
-        <div class="row2">
-          <button class="btn rec" id="subGo">Send it</button>
-          <button class="btn ghost" id="subCancel">Cancel</button>
-        </div>
-        <div class="subnote">Your loop goes in with its background, exactly as previewed. It appears on the wall once approved.</div>
       </div>
 
       <div class="batch" id="batch">
@@ -205,9 +176,22 @@
   </div>
 
   <footer>
-    Backgrounds are torn paper scraps — your drawing floats on one, transparent around the edges.<br>
-    Pick <b>None</b> for pure transparency. GIF keeps the transparency and loops forever; MP4 sits on white.
+    The ink is lifted straight off the paper — what you export floats on pure transparency.<br>
+    GIF keeps the transparency and loops forever; MP4 sits on white.
   </footer>
+</div>
+
+<div class="overlay" id="submitOverlay">
+  <div class="submitbox" id="submitBox">
+    <div class="bh">Submit to the Doodle Wall</div>
+    <input type="text" id="subName" maxlength="40" placeholder="Your name (optional)">
+    <input type="text" id="subLoc" maxlength="40" placeholder="Where are you? (optional)">
+    <div class="row2">
+      <button class="btn rec" id="subGo">Send it</button>
+      <button class="btn ghost" id="subCancel">Cancel</button>
+    </div>
+    <div class="subnote">Your loop goes in exactly as previewed. It appears on the wall once approved.</div>
+  </div>
 </div>
 
 <input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
@@ -224,13 +208,12 @@
 
   const queue = [];
   let activeIndex = -1;
-  let img = null, W = 0, H = 0, cleanURL = null, keyed = false, srcHadAlpha = false;
+  let img = null, W = 0, H = 0, cleanURL = null, srcHadAlpha = false;
   let frames = [], frameIdx = 0;
   let playing = false, busy = false, rafId = null, lastStep = 0;
   let regenToken = 0;
 
-  const PALETTE = ['#AECB52','#9BBDF7','#EFFC9E','#7A3B3B','#EE9539'];
-  const state = { cleanup:22, intensity:9, grain:12, n:4, fps:12, bg:'none', dur:3 };
+  const state = { cleanup:22, intensity:9, grain:12, n:4, fps:12, dur:3 };
   const grainToFreq = g => (g/1000).toFixed(4);
   const grainLabel  = g => g<18?'Broad':g<32?'Med':'Fine';
   const baseName = n => (n||'image').replace(/\.[^.]+$/,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'image';
@@ -328,7 +311,6 @@
     }
     tctx.putImageData(id,0,0);
     cleanURL = tmp.toDataURL('image/png');
-    keyed = true;   // output is always transparent-backed now
   }
 
   /* ---------- despeckle: keep real strokes, delete isolated flecks ---------- */
@@ -400,74 +382,9 @@
     frames=next; if(frameIdx>=frames.length) frameIdx=0;
   }
 
-  /* ---------- torn paper backgrounds ---------- */
-  const paperCache=new Map();
-  function makePaper(color,pw,ph){
-    // seeded PRNG so the scrap is stable per colour+size (no flicker between frames)
-    let seed=0; for(const ch of color) seed=(seed*31+ch.charCodeAt(0))>>>0;
-    seed=(seed^ (pw*7919+ph*104729))>>>0;
-    const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
-    const c=document.createElement('canvas'); c.width=pw; c.height=ph;
-    const x=c.getContext('2d');
-    // torn outline: correlated random walk along the perimeter — wandering
-    // tears with occasional bites, not sawtooth spikes
-    const inset=Math.min(pw,ph)*0.055, jag=Math.min(pw,ph)*0.028;
-    const step=Math.max(5,Math.round(Math.min(pw,ph)/46));
-    const sides=[[inset,inset,pw-inset,inset],[pw-inset,inset,pw-inset,ph-inset],
-                 [pw-inset,ph-inset,inset,ph-inset],[inset,ph-inset,inset,inset]];
-    const pts=[]; let j=0;
-    for(const [x0,y0,x1,y1] of sides){
-      const len=Math.hypot(x1-x0,y1-y0), n=Math.max(3,Math.round(len/step));
-      const nx=(y1-y0)/len, ny=-(x1-x0)/len;
-      for(let i=0;i<n;i++){
-        const t=i/n;
-        j=j*0.82+(rnd()-0.5)*jag*0.9;                    // smooth wander
-        if(rnd()<0.045) j+=(rnd()-0.5)*jag*2.6;          // occasional bite
-        j=Math.max(-jag*1.6,Math.min(jag*1.6,j));
-        pts.push([x0+(x1-x0)*t+nx*j, y0+(y1-y0)*t+ny*j]);
-      }
-    }
-    const tracePath=()=>{                                 // smooth through midpoints
-      x.beginPath();
-      const n=pts.length;
-      x.moveTo((pts[0][0]+pts[n-1][0])/2,(pts[0][1]+pts[n-1][1])/2);
-      for(let i=0;i<n;i++){
-        const p=pts[i], q=pts[(i+1)%n];
-        x.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);
-      }
-      x.closePath();
-    };
-    tracePath();
-    x.fillStyle=color; x.fill();
-    // paper body: fine fibre grain + broad mottle, clipped to the scrap
-    const id=x.getImageData(0,0,pw,ph), d=id.data;
-    const phase=rnd()*6.28;
-    for(let py=0;py<ph;py++) for(let px=0;px<pw;px++){
-      const i=(py*pw+px)*4; if(!d[i+3]) continue;
-      const v=1+(rnd()-0.5)*0.07
-              +Math.sin(px*0.013+py*0.007+phase)*0.022
-              +Math.sin(px*0.041-py*0.029+phase*2)*0.012;
-      d[i]=Math.min(255,d[i]*v); d[i+1]=Math.min(255,d[i+1]*v); d[i+2]=Math.min(255,d[i+2]*v);
-    }
-    x.putImageData(id,0,0);
-    // torn rim: pale fibre edge where the paper core shows
-    tracePath();
-    x.strokeStyle='rgba(255,253,246,0.6)'; x.lineWidth=Math.max(1.5,Math.min(pw,ph)*0.005);
-    x.stroke();
-    return c;
-  }
-  function bgLayer(){
-    if(state.bg==='none') return null;
-    const key=state.bg+'|'+W+'x'+H;
-    let p=paperCache.get(key);
-    if(!p){ p=makePaper(state.bg,W,H); paperCache.set(key,p); }
-    return p;
-  }
-
   /* ---------- render ---------- */
   function paint(i){
     ctx.clearRect(0,0,W,H);
-    const p=bgLayer(); if(p) ctx.drawImage(p,0,0,W,H);
     if(frames[i]) ctx.drawImage(frames[i],0,0,W,H);
   }
   function loop(t){
@@ -475,8 +392,8 @@
     if(t-lastStep>=1000/state.fps){ lastStep=t; frameIdx=(frameIdx+1)%Math.max(1,frames.length); paint(frameIdx); }
     rafId=requestAnimationFrame(loop);
   }
-  function startPlay(){ if(playing||!frames.length)return; frameEl.classList.add('checker'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); $('#play').textContent='Pause preview'; }
-  function stopPlay(){ playing=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; $('#play').textContent='Play preview'; }
+  function startPlay(){ if(playing||!frames.length)return; frameEl.classList.add('checker'); playing=true; lastStep=0; rafId=requestAnimationFrame(loop); }
+  function stopPlay(){ playing=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; }
 
   /* ---------- queue ---------- */
   function decodeImage(dataURL){ return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataURL;}); }
@@ -514,7 +431,7 @@
     queue.splice(i,1);
     if(queue.length===0){
       activeIndex=-1; stopPlay(); ctx.clearRect(0,0,cv.width,cv.height);
-      badge.textContent=''; drop.classList.remove('hide'); enable(false);
+      badge.textContent=''; drop.classList.remove('hide'); frameEl.classList.remove('checker'); enable(false);
       renderTray(); setStatus('Load a drawing to begin.'); return;
     }
     if(i<activeIndex){ activeIndex--; renderTray(); }
@@ -541,7 +458,7 @@
 
   /* ---------- status ---------- */
   function setStatus(kind){
-    if(kind==='ready') statusEl.innerHTML=`<span class="dot" style="background:var(--blue)"></span>Live preview · ${state.fps} fps${keyed?' · transparent-ready':''}`;
+    if(kind==='ready') statusEl.innerHTML=`<span class="dot" style="background:var(--blue)"></span>Live preview · ${state.fps} fps`;
     else if(kind && kind.rec) statusEl.innerHTML=`<span class="live"><span class="dot pulse" style="background:var(--blue)"></span>${kind.rec}</span>`;
     else statusEl.textContent=kind;
   }
@@ -564,7 +481,6 @@
     let next=performance.now();
     for(let f=0;f<total;f++){
       ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);          // video has no alpha
-      const p=bgLayer(); if(p) ctx.drawImage(p,0,0,W,H);       // torn paper scrap
       if(frames.length) ctx.drawImage(frames[f%frames.length],0,0,W,H);
       if(track.requestFrame) track.requestFrame();
       if(onProg) onProg(f,total);
@@ -580,7 +496,7 @@
     try{
       const {blob,ext}=await recordVideoBlob((f)=>setStatus({rec:`Recording ${(f/state.fps).toFixed(1)}s / ${state.dur.toFixed(1)}s`}));
       const kb=Math.round(saveBlob(blob,'ink-boil.'+ext)/1024);
-      const note = ext!=='mp4' ? ' · (browser can’t do MP4, saved WebM)' : (state.bg==='none'?' · (video has no alpha, used white)':'');
+      const note = ext!=='mp4' ? ' · (browser can’t do MP4, saved WebM)' : ' · (video has no alpha, used white)';
       statusEl.innerHTML=`Saved <b>ink-boil.${ext}</b> · ${state.dur.toFixed(1)}s · ${kb} KB`+note;
     }catch(e){ setStatus('Video export failed on this browser.'); }
     busy=false; enable(true); $('#exportMp4').textContent='Export video · MP4'; startPlay();
@@ -591,10 +507,9 @@
   function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
 
   /* ---------- animated GIF encoder (palette + LZW, no libs) ---------- */
-  function framePixels(bitmap,fill){
+  function framePixels(bitmap){
     const off=document.createElement('canvas'); off.width=W; off.height=H;
     const o=off.getContext('2d'); o.clearRect(0,0,W,H);
-    if(fill){ const p=bgLayer(); if(p) o.drawImage(p,0,0,W,H); }  // torn scrap; outside stays transparent
     o.drawImage(bitmap,0,0,W,H);
     return o.getImageData(0,0,W,H).data;
   }
@@ -619,9 +534,9 @@
     if(bits>0) out.push(cur&255);
     return out;
   }
-  function buildGIF(bmps,fps,fill){
-    const transparent=true, CUT=128;   // even paper scraps float on transparency
-    const framesRGBA=bmps.map(b=>framePixels(b,fill));
+  function buildGIF(bmps,fps){
+    const transparent=true, CUT=128;
+    const framesRGBA=bmps.map(b=>framePixels(b));
     // build a shared 256-colour table from every frame (5-bit histogram, most-used win)
     const buckets=new Map();
     for(const data of framesRGBA)
@@ -672,11 +587,9 @@
     if(busy||!img) return;
     busy=true; stopPlay(); enable(false); $('#exportGif').textContent='Building…';
     setStatus({rec:'Building GIF…'}); await sleep(20);
-    const fill = state.bg==='none' ? null : state.bg;
-    const blob=buildGIF(frames,state.fps,fill);
+    const blob=buildGIF(frames,state.fps);
     const kb=Math.round(saveBlob(blob,'ink-boil-loop.gif')/1024);
-    const how = fill ? `on torn paper ${state.bg.toUpperCase()}` : 'transparent';
-    statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · ${how} · ${frames.length} frames · ${kb} KB`;
+    statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · transparent · ${frames.length} frames · ${kb} KB`;
     busy=false; enable(true); $('#exportGif').textContent='Export loop · GIF'; startPlay();
   }
 
@@ -687,14 +600,13 @@
     busy=true; stopPlay(); enable(false); $('#subGo').textContent='Sending…';
     setStatus({rec:'Boiling your doodle onto the wall…'}); await sleep(20);
     try{
-      const fill = state.bg==='none' ? null : state.bg;
-      const blob=buildGIF(frames,state.fps,fill);
+      const blob=buildGIF(frames,state.fps);
       if(blob.size>3_000_000) throw new Error('too big');
       const dataURL=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
       const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({gif:dataURL,name:$('#subName').value.trim(),location:$('#subLoc').value.trim()})});
       if(!r.ok) throw new Error('server');
-      $('#submitBox').style.display='none';
+      $('#submitOverlay').classList.remove('show');
       statusEl.innerHTML='Sent! Your doodle is <b>awaiting approval</b> — check the <a href="wall.html">wall</a> soon.';
     }catch(e){
       setStatus(e.message==='too big' ? 'That loop is over 3 MB — try a smaller image or shorter grain.' : 'Could not reach the wall — try again in a minute.');
@@ -731,14 +643,13 @@
     if(mode==='mp4' && !pickMime()){ setStatus('No video encoder here — try Chrome, Edge or Safari.'); return; }
     busy=true; stopPlay(); enable(false);
     const savedIdx=activeIndex, n=queue.length, out=[];
-    const fill = state.bg==='none' ? null : state.bg;
     try{
       for(let i=0;i<n;i++){
         setStatus({rec:`Processing ${i+1}/${n} — ${queue[i].name||'image'}`});
         await loadIntoGlobals(queue[i].dataURL);
         await generate();
         let blob,ext;
-        if(mode==='gif'){ blob=buildGIF(frames,state.fps,fill); ext='.gif'; }
+        if(mode==='gif'){ blob=buildGIF(frames,state.fps); ext='.gif'; }
         else { const r=await recordVideoBlob((f)=>setStatus({rec:`Recording ${i+1}/${n} · ${(f/state.fps).toFixed(1)}s`})); blob=r.blob; ext='.'+r.ext; }
         out.push({name:baseName(queue[i].name)+'-boil'+ext, bytes:new Uint8Array(await blob.arrayBuffer())});
       }
@@ -758,13 +669,9 @@
     $('#batchMp4').disabled=busy||!many;
   }
   function enable(on){
-    ['#cleanup','#intensity','#grain','#dur','#play','#exportMp4','#exportGif','#wallBtn','#replace'].forEach(s=>$(s).disabled=!on);
+    ['#cleanup','#intensity','#grain','#dur','#exportMp4','#exportGif','#wallBtn','#replace'].forEach(s=>$(s).disabled=!on);
     updateBatchUI();
   }
-
-  /* ---------- background control (palette only) ---------- */
-  function selectSwatch(btn){ [...$('#bg').children].forEach(c=>c.classList.remove('on')); btn.classList.add('on'); }
-  function updateHex(){ $('#hex').textContent = state.bg==='none' ? 'None' : state.bg.toUpperCase(); }
 
   /* ---------- controls ---------- */
   let regenT=null, cleanT=null;
@@ -779,20 +686,17 @@
     [...e.currentTarget.children].forEach(c=>c.classList.remove('on')); b.classList.add('on');
     state.n=+b.dataset.n; state.fps=+b.dataset.fps; frameIdx=0; await generate();
     if(playing)setStatus('ready'); else paint(0); });
-  $('#bg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
-    selectSwatch(b); state.bg=b.dataset.c;
-    updateHex(); if(!playing)paint(frameIdx); });
-  $('#play').addEventListener('click',()=>{ if(busy)return; playing?(stopPlay(),setStatus('Preview paused.')):(startPlay(),setStatus('ready')); });
   $('#exportMp4').addEventListener('click',exportVideo);
   $('#exportGif').addEventListener('click',exportGif);
   $('#batchGif').addEventListener('click',()=>runBatch('gif'));
   $('#batchMp4').addEventListener('click',()=>runBatch('mp4'));
   $('#replace').addEventListener('click',()=>fileInput.click());
   if(onServer){ $('#wallBtn').style.display='flex'; $('#wallLink').style.display='inline'; }
-  $('#wallBtn').addEventListener('click',()=>{ if(busy||!img)return; $('#submitBox').style.display='flex'; $('#subName').focus(); });
-  $('#subCancel').addEventListener('click',()=>{ $('#submitBox').style.display='none'; });
+  $('#wallBtn').addEventListener('click',()=>{ if(busy||!img)return; $('#submitOverlay').classList.add('show'); $('#subName').focus(); });
+  $('#subCancel').addEventListener('click',()=>{ $('#submitOverlay').classList.remove('show'); });
+  $('#submitOverlay').addEventListener('click',e=>{ if(e.target===e.currentTarget && !busy) e.currentTarget.classList.remove('show'); });
+  window.addEventListener('keydown',e=>{ if(e.key==='Escape' && !busy) $('#submitOverlay').classList.remove('show'); });
   $('#subGo').addEventListener('click',submitToWall);
-  frameEl.classList.toggle('checker',state.bg==='none');   // transparent-by-default preview
 
   drop.addEventListener('click',()=>fileInput.click());
   fileInput.addEventListener('change',e=>{ if(e.target.files.length) loadFiles(e.target.files); fileInput.value=''; });
