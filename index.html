@@ -162,7 +162,7 @@
         <button class="btn rec" id="exportMp4" disabled>Export video · MP4</button>
         <button class="btn alpha" id="exportGif" disabled>Export loop · GIF</button>
         <button class="btn ghost" id="wallBtn" disabled style="display:none">Submit to the Doodle Wall</button>
-        <button class="btn ghost" id="sendBtn" disabled style="display:none">Send to a friend</button>
+        <button class="btn ghost" id="sendBtn" disabled>Send to a friend</button>
         <button class="btn ghost" id="replace" disabled>Add drawings</button>
       </div>
 
@@ -624,8 +624,13 @@
       // built synchronously so the browser still counts this as the tap
       const blob=buildGIF(frames,state.fps);
       const file=new File([blob],'ink-boil.gif',{type:'image/gif'});
-      await navigator.share({files:[file],title:'Ink Boil doodle'});
-      setStatus('Sent!');
+      if(canShareGif){
+        await navigator.share({files:[file],title:'Ink Boil doodle'});
+        setStatus('Sent!');
+      } else {
+        const kb=Math.round(saveBlob(blob,'ink-boil.gif')/1024);
+        statusEl.innerHTML=`This browser can’t open a share sheet, so the loop was saved — <b>ink-boil.gif</b> · ${kb} KB. Attach it anywhere.`;
+      }
     }catch(e){
       if(e && e.name==='AbortError') setStatus('ready');   // they closed the share sheet
       else { setStatus('Sharing failed here — use Export GIF and send the file instead.'); }
@@ -732,7 +737,7 @@
   $('#batchMp4').addEventListener('click',()=>runBatch('mp4'));
   $('#replace').addEventListener('click',()=>fileInput.click());
   if(onServer){ $('#wallBtn').style.display='flex'; $('#wallLink').style.display='inline'; }
-  if(canShareGif){ $('#sendBtn').style.display='flex'; $('#sendBtn').addEventListener('click',sendToFriend); }
+  $('#sendBtn').addEventListener('click',sendToFriend);
   $('#wallBtn').addEventListener('click',()=>{ if(busy||!img)return; $('#submitOverlay').classList.add('show'); $('#subName').focus(); });
   $('#subCancel').addEventListener('click',()=>{ $('#submitOverlay').classList.remove('show'); });
   $('#submitOverlay').addEventListener('click',e=>{ if(e.target===e.currentTarget && !busy) e.currentTarget.classList.remove('show'); });
