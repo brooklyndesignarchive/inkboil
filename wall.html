@@ -4,15 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ink Boil · Doodle Wall</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#000;
     --rule:rgba(0,0,0,0.18);
     --quiet:#454545;
-    --mono:'Space Mono',ui-monospace,monospace;
     --serif:Georgia,'Times New Roman',serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -26,10 +22,11 @@
   .brand{display:flex;flex-direction:column;gap:3px}
   .brandrow{display:flex;align-items:center;gap:13px}
   .wordmark{display:block;overflow:visible;color:var(--ink)}
-  .pagelabel{font-family:var(--mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--quiet);border-left:1px solid var(--rule);padding-left:13px;line-height:1}
-  .sub{font-size:12.5px;font-style:italic;color:var(--quiet)}
-  .backlink{font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px}
-  .backlink:hover{border-bottom-color:var(--ink)}
+  .pagelabel{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--quiet);border-left:1px solid var(--rule);padding-left:13px;line-height:1}
+  .headnav{display:flex;align-items:baseline;gap:26px}
+  .headnav a,.headnav button{font-family:var(--serif);font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink);text-decoration:none;background:none;border:none;border-bottom:1px solid var(--rule);padding:0 0 2px;cursor:pointer;line-height:1.4}
+  .headnav a:hover,.headnav button:hover{border-bottom-color:var(--ink)}
+  .headnav a:active,.headnav button:active{opacity:0.5}
   .sheetrule{height:1px;background:var(--rule);margin:0 calc(50% - 50vw)}
 
   /* ---------- the galley ---------- */
@@ -83,7 +80,8 @@
   footer{font-size:11.5px;font-style:italic;color:var(--quiet);text-align:center;padding:26px 20px 6px;line-height:1.7}
 
   /* ---------- lightbox ---------- */
-  .lb{position:fixed;inset:0;background:#fff;z-index:30;display:flex;align-items:center;justify-content:center;padding:56px 72px}
+  .lb{position:fixed;inset:0;background:#fff;z-index:30;display:flex;align-items:center;justify-content:center;padding:56px 72px;animation:lbIn 180ms ease-out}
+  @keyframes lbIn{from{opacity:0}}
   .lb[hidden]{display:none}
   .lb figure{max-width:min(880px,100%);width:100%;display:flex;flex-direction:column;align-items:center}
   .lb img{max-width:100%;max-height:68vh;width:auto;height:auto;display:block}
@@ -92,6 +90,7 @@
   .lb .handle-row{visibility:visible;font-size:12.5px;margin-top:2px}
   .lb button{font-family:var(--serif);background:none;border:none;color:var(--ink);cursor:pointer;position:absolute;padding:10px 14px;font-size:24px;line-height:1}
   .lb button:hover{opacity:0.55}
+  .lb button:active{opacity:0.35}
   .lb button:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
   .lb .x{top:14px;right:18px}
   .lb .prev{left:12px;top:50%;transform:translateY(-50%)}
@@ -99,6 +98,38 @@
   @media(max-width:600px){.lb{padding:56px 20px}.lb .prev{left:2px}.lb .next{right:2px}}
 
   a:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+
+  /* ---------- about ---------- */
+  .about{margin:76px max(18px,calc((100vw - 1380px)/2 + 32px)) auto auto;width:min(440px,calc(100% - 36px));
+    border:1px solid var(--rule);background:#fff;padding:34px 36px 30px;
+    font-family:var(--serif);color:var(--ink);
+    transform-origin:top right;  /* it comes from the About link above it */
+    transition:opacity 220ms ease-out,transform 220ms ease-out}
+  @media(max-width:600px){.about{margin:76px auto auto auto}}
+  .about::backdrop{background:rgba(255,255,255,0.72);backdrop-filter:blur(5px);transition:opacity 220ms ease-out}
+  .about[open]{opacity:1;transform:scale(1) translateY(0)}
+  @starting-style{.about[open]{opacity:0;transform:scale(0.97) translateY(-6px)}}
+  .about.closing{opacity:0;transform:scale(0.97) translateY(-6px)}   /* exit retraces the entrance */
+  .about.closing::backdrop{opacity:0}
+  .about h2{font-size:13px;font-weight:normal;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:18px}
+  .about p{font-size:13.5px;line-height:1.75;margin-bottom:13px}
+  .about p:last-of-type{margin-bottom:0}
+  .about a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.3)}
+  .about a:hover{border-bottom-color:var(--ink)}
+  .about .x{position:absolute;top:8px;right:10px;font-family:var(--serif);font-size:20px;line-height:1;background:none;border:none;color:var(--ink);cursor:pointer;padding:8px 10px}
+  .about .x:hover{opacity:0.55}
+  .about .x:active{opacity:0.35}
+  .about button:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    .about,.about::backdrop{transition:opacity 160ms ease}
+    .about[open],.about.closing{transform:none}
+    @starting-style{.about[open]{transform:none}}
+    .lb{animation:none}
+  }
+  @media(prefers-reduced-transparency:reduce){
+    .about::backdrop{background:rgba(255,255,255,0.96);backdrop-filter:none}
+  }
 </style>
 </head>
 <body>
@@ -116,9 +147,11 @@
         <svg class="wordmark" width="142" height="40" viewBox="0 0 144.52 40.84" role="img" aria-label="Ink Boil"><g fill="currentColor" filter="url(#chromeBoilFine)"><path d="M123.11,13.03c-.66-.1-1.31-.42-1.63-1-.23-.42-.25-.95,0-1.37.36-.59,1.04-.84,1.79-.93.66-.05,1.53.03,1.83.7.22.51.16,1.16-.06,1.67-.3.75-1.11,1.05-1.91.93h-.01Z"/><path d="M83.52,13.25c-2.02,2.55-2.7,5.8-3.92,8.74-.95,2.27-2.22,4.46-3.16,6.74-.33.8-.61,1.65-1.01,2.42-1.4,2.95-4.3,1.84-3.42-1.3,1.34-3.87,3.77-7.34,4.76-11.36.65-1.84.8-3.86,1.56-5.63.48-.98,1.34-1.63,2.19-2.26,1.03-.73,1.85-1.75,2.9-2.43,1.6-1,3.61-.8,5.4-.58,2.44.28,4.84,1.6,5.63,4.03,1.91,6.02-5.27,8.8-2.54,11.49,2.14,1.62,4.88-.11,6.97-1.06,1.74-.93,5.04-2.55,5.98.11.29,1.07-.22,2.19-.64,3.17-.47,1.05-.8,2.19-.93,3.36-.47,2.96.72,7.84,4.19,4.15,1.01-1.12,2.16-2.84,1.03-4.23-.57-.77-1.5-1.38-2.01-2.28-1.46-2.45,1.07-5.6,3.75-5.13,1.52.28,2.16,1.97,3.28,2.86,2.39,1.98,4.83-1.12,7.28-.95,1.59.18,1.58,2,2.25,3.08.54.91,2,1.23,3.08,1.09,5.26-.76,5.11-4.72,6.49-8.79,1.29-3.65,3.9-10.43,6.94-12.69,2.39-1.83,4.57-.18,4.88,2.54.24,1.83-.31,3.62-1.31,5.15-1,1.61-2.12,3.21-3.05,4.87-.99,1.63-1.79,3.36-2.81,4.97-.98,1.58-2.33,2.92-2.94,4.69-.73,2.38-.4,5.62,1.02,7.7.71.97,1.92,1.5,2.66,2.39,1.22,1.6-1.24,3.14-2.73,2.62-2.04-.59-2.93-2.98-3.71-4.78-.6-1.42-.64-3.04-1.12-4.48-.37-1-1.2-1.06-2.26-.82-1,.24-2.14.47-3.2.53-4,.09-4.52,3.14-6.29,5.95-.89,1.49-2.98,2-3.43-.02-.21-1.68.76-3.21,1.11-4.83.87-2.67-.31-4.53-2.72-2.14-.9.97-1.42,2.23-2.1,3.36-1.06,1.8-2.58,3.4-4.48,4.32-4.07,2.13-6.55-1.72-7.28-5.29-.22-.97-.32-1.98-.31-2.96-.04-1,.24-2.62-.76-3.13-.99-.32-2.17.39-2.68,1.27-.47.78-.55,1.76-.71,2.68-.43,3.82-4,6.21-7.49,7.04-6.48,1.48-9.57-2.92-3.91-7.42,1.46-1.38,7.86-4.44,2.2-4.83-1.15-.11-2.42-.89-2.04-2.16.48-1.27,2.14-1.9,3.09-2.85,1.67-1.67,4.77-5.32,3.3-7.76-1.71-2.23-5.54-1.26-7.01.84h0ZM136.14,19.09c.46-.43.84-1.17,1.21-1.72.88-1.38,1.75-2.73,2.51-4.17.46-.88,1.15-1.88,1.09-2.9-.07-.6-.54-.6-.93-.23-.59.57-1.01,1.36-1.44,2.06-1.04,1.8-2,3.67-2.62,5.66-.09.3-.45,1.76.17,1.3h0ZM84.93,34.61c.58.14,1.24.02,1.83-.09.73-.14,1.42-.36,2.09-.7,1.43-.74,3.74-2.23,3.69-4.03-.26-1.73-2.5-.37-3.36.14-.48.29-.95.58-1.42.88-.6.42-4.77,3.31-2.84,3.8h.01Z"/><path d="M6.47,34.64c-1.5,1.36-3.23,3.41-5.41,3.25-1.7-.33-1.08-2.1-.03-3.02,1.73-1.52,3.64-2.89,5.19-4.61.73-.78,1.4-1.66,1.77-2.66.57-1.51.51-3.18.71-4.77.15-1.44.37-2.88.61-4.31.83-4.55,2.57-9.23,6.16-12.31,2.18-1.9,4.82-1.21,6.08,1.3,1.1,2.37.47,5.19-.41,7.54-1.09,2.59-2.44,5.11-4.03,7.42-.63.93-1.27,1.86-1.93,2.78-.78,1.02-1.54,2.14-1.63,3.45-.1,1.44.75,2.85,1.83,3.72,1.22,1,2.94.99,4.24.13,1.73-1.12,2.99-2.86,4.19-4.51,1.26-1.77,2.51-3.51,3.8-5.25.71-1,1.3-2.12,2.26-2.88,1.24-1.09,3.08-.47,3.37,1.15.31,1.71-.6,3.37-.98,5.05-.94,4.05,1.39,1.6,2.81.14.86-.86,1.8-1.67,2.74-2.42,1.42-1.07,2.88-2.38,4.65-2.81,2.23-.49,3.09,1.5,2.59,3.49-.24,1.63-2.51,5.89-1.64,7.12,1.39.96,5.41-5.2,6.24-6.32,1.37-2.06,2.77-4.08,3.94-6.27,1.25-2.28,2.36-4.64,3.45-7,1.43-2.88,2.86-5.77,4.21-8.69,2.67-5.78,9.39-3.56,8.2,2.64-.57,2.28-1.9,4.33-3.34,6.16-1.27,1.67-3.71,3.21-2.65,5.6.78,1.81,1.69,3.81,1.76,5.85.34,3.21-2.57,5.75-.67,8.2,1.11,1.58,3.49,1.81,4.61,3.29.79,1.31-.77,2.23-1.99,2.09-1.81-.12-3.5-1.06-4.96-2.07-1.06-.75-2.09-1.06-3.26-.58-.76.27-1.54.79-2.3,1.09-1.44.61-3.17.52-4.36-.53-2.42-2.27-.27-5.39,1.83-6.99,3.23-2.77,6.03-1.27,7.14-3.32.63-1.36.26-3.52-1.03-4.38-3.01-1.5-5.06,2.73-6.48,4.76-1.64,2.29-3.03,4.74-4.63,7.05-.91,1.33-1.9,2.49-3.2,3.41-2.27,1.78-5.93,3.31-7.02-.51-.41-1.78.13-3.59.42-5.35.72-4.87-4.25,1.33-5.31,2.35-1.4,1.39-2.76,3.74-4.73,4.24-1.21.26-2.15-.66-2.23-1.84-.12-1.39.55-2.95.71-4.31.23-1.67-.5-1.32-1.32-.3-1.66,2.02-3.01,4.44-5.16,5.99-2.62,1.94-6.27,1.65-8.54-.71-2.67-2.95-3.14-3.78-6.29-.53h-.01ZM59.86,13.51c-.18.92,1.42-1.21,1.55-1.35.54-.67,1.12-1.29,1.65-1.98.83-1.06,2.85-4.1,2.24-5.4-.36-.41-1.05.56-1.27.88-1.14,1.69-2.09,3.5-3.01,5.31-.39.8-.92,1.69-1.16,2.52h0ZM13.16,22.97c.97.13,3.48-4.69,4-5.65.88-1.77,2.06-3.48,2.19-5.5.05-.71.06-1.5-.18-2.15-.27-.72-.85-.9-1.48-.44-.54.39-1.03,1.04-1.42,1.61-.79,1.16-1.33,2.48-1.82,3.79-.39,1.01-.76,2.05-1.01,3.11-.24,1-.41,2.04-.55,3.07-.06.52-.31,1.99.27,2.16h0ZM55.3,32.46c.74-.33,1.55-1.02,2.1-1.63.25-.28.86-1.11.16-1.01-.96.2-2.45,1.09-3.11,1.85-.69.85-.02,1.17.84.79h.01Z"/></g></svg>
         <span class="pagelabel">Doodle Wall</span>
       </div>
-      <div class="sub">Drawn by hand, scanned, and boiled — by people like you.</div>
     </div>
-    <a class="backlink" href="/">← make your own</a>
+    <nav class="headnav">
+      <button id="aboutBtn" aria-haspopup="dialog">About</button>
+      <a href="/">← make your own</a>
+    </nav>
   </header>
 </div>
 <div class="sheetrule" role="presentation"></div>
@@ -129,6 +162,14 @@
   <div class="empty" id="empty" style="display:none">Nothing on the wall yet.<br>Draw something, boil it, and hit “Pin to the Doodle Wall”.</div>
   <footer>Every doodle here was drawn by hand, scanned, and boiled.</footer>
 </div>
+
+<dialog class="about" id="about" aria-labelledby="aboutTitle">
+  <button class="x" aria-label="Close">×</button>
+  <h2 id="aboutTitle">About the wall</h2>
+  <!-- Interim copy assembled from the product's own lines — awaiting the real text. -->
+  <p>Every doodle here was drawn by hand, scanned, and boiled — by people like you.</p>
+  <p>Draw something, lift it off the paper with <a href="/">Ink Boil</a>, and pin it. It appears here once approved.</p>
+</dialog>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Doodle" tabindex="-1" hidden>
   <button class="x" aria-label="Close">×</button>
@@ -238,6 +279,19 @@
       else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
     }
   });
+
+  /* ---------- about ---------- */
+  const about=document.getElementById('about');
+  document.getElementById('aboutBtn').addEventListener('click',()=>about.showModal());
+  function closeAbout(){
+    if(about.classList.contains('closing')) return;
+    about.classList.add('closing');
+    const done=()=>{ about.close(); about.classList.remove('closing'); };
+    matchMedia('(prefers-reduced-motion: reduce)').matches ? setTimeout(done,160) : setTimeout(done,230);
+  }
+  about.querySelector('.x').addEventListener('click',closeAbout);
+  about.addEventListener('click',e=>{ if(e.target===about) closeAbout(); });          // the backdrop is the dialog's own hit area
+  about.addEventListener('cancel',e=>{ e.preventDefault(); closeAbout(); });          // Esc exits along the entrance path too
 
   /* ---------- the wordmark boils too ---------- */
   const chromeNoise=[...document.querySelectorAll('feTurbulence[id^="chromeNoise"]')];
