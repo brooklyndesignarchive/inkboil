@@ -6,44 +6,99 @@
 <title>Ink Boil · Doodle Wall</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#E9E7DF; --panel:#F4F2EC; --ink:#17171B;
-    --blue:#2E6389; --blue-line:#9CCADD;
-    --line:rgba(23,23,27,0.14); --line-soft:rgba(23,23,27,0.07);
+    --ink:#000;
+    --rule:rgba(0,0,0,0.18);
+    --quiet:#454545;
     --mono:'Space Mono',ui-monospace,monospace;
-    --sans:'Space Grotesk',system-ui,sans-serif;
-    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --serif:Georgia,'Times New Roman',serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
-  .wrap{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:28px 24px 40px;display:flex;flex-direction:column;gap:22px}
-  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:14px;flex-wrap:wrap}
-  .brand{display:flex;flex-direction:column;gap:1px}
-  .wordmark{display:block;overflow:visible;color:var(--ink)}
+  html{overflow-x:hidden}
+  body{background:#fff;color:var(--ink);font-family:var(--serif);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  .wrap{flex:1;width:100%;max-width:1380px;margin:0 auto;padding:26px 32px 48px}
+  @media(max-width:600px){.wrap{padding:20px 18px 40px}}
+
+  /* ---------- masthead ---------- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:16px}
+  .brand{display:flex;flex-direction:column;gap:3px}
   .brandrow{display:flex;align-items:center;gap:13px}
-  .pagelabel{font-family:var(--mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(23,23,27,0.55);border-left:1px solid var(--line);padding-left:13px;line-height:1}
-  .sub{font-size:13.5px;color:rgba(23,23,27,0.66)}
-  .backlink{font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue);text-decoration:none;border-bottom:1px solid var(--blue-line);padding-bottom:2px;transition:border-color 150ms ease}
-  .backlink:hover{border-bottom-color:var(--blue)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
-  .card{--tilt:0deg;background:#FBFAF6;border:1px solid var(--line);border-radius:2px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 3px rgba(23,23,27,0.07);transform:rotate(var(--tilt));transition:transform 180ms ease,box-shadow 180ms ease;animation:cardIn 300ms var(--ease-out) backwards}
-  .card:nth-child(3n){--tilt:-0.7deg}
-  .card:nth-child(3n+1){--tilt:0.5deg}
-  .card:nth-child(3n+2){--tilt:-0.3deg}
-  @media(hover:hover) and (pointer:fine){
-    .card:hover{transform:rotate(0deg) translateY(-2px);box-shadow:0 6px 16px rgba(23,23,27,0.12)}
+  .wordmark{display:block;overflow:visible;color:var(--ink)}
+  .pagelabel{font-family:var(--mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--quiet);border-left:1px solid var(--rule);padding-left:13px;line-height:1}
+  .sub{font-size:12.5px;font-style:italic;color:var(--quiet)}
+  .backlink{font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px}
+  .backlink:hover{border-bottom-color:var(--ink)}
+  .sheetrule{height:1px;background:var(--rule);margin:0 calc(50% - 50vw)}
+
+  /* ---------- the galley ---------- */
+  .sheetclip{overflow:hidden}
+  .sheet{display:grid;grid-template-columns:1fr;margin-right:-2px} /* -2 not -1: retina rounding can leave a sliver of the clipped edge rule */
+  .cell{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+    --px:clamp(16px,2.2vw,30px);
+    padding:clamp(18px,2.6vw,34px) var(--px) 15px;
+    display:flex;flex-direction:column;background:#fff}
+  .cell.blank{padding:0}
+  @media(max-width:600px){.cell.blank{display:none}} /* a pause doesn't read in a single column */
+  .piece{display:flex;flex-direction:column;flex:1;cursor:zoom-in;outline:none}
+  .piece+.piece{border-top:1px solid var(--rule);margin:15px calc(var(--px) * -1) 0;padding:clamp(18px,2.6vw,34px) var(--px) 0}
+  .piece .art{flex:1;display:flex;align-items:center;padding-bottom:13px}
+  .piece img{width:100%;height:auto;display:block}
+  .label,.handle-row{font-size:11px;line-height:1.55;letter-spacing:0.01em}
+  .label{display:flex;justify-content:space-between;gap:14px}
+  .label .name{color:var(--ink)}
+  .label .name.anon{font-style:italic;color:var(--quiet)}
+  .label .loc{color:var(--quiet);text-align:right}
+  .handle-row{visibility:hidden}
+  .handle-row a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.3)}
+  .handle-row a:hover{border-bottom-color:var(--ink)}
+  .piece:hover .handle-row,.piece:focus-visible .handle-row,.piece:focus-within .handle-row{visibility:visible}
+  .piece:focus-visible{outline:1px solid var(--ink);outline-offset:6px}
+
+  /* two columns and up: vertical rules join the horizontal ones */
+  @media(min-width:601px) and (max-width:980px){
+    .sheet{grid-template-columns:repeat(6,1fr)}
+    .sheet>*:nth-child(5n+1){grid-column:span 4}
+    .sheet>*:nth-child(5n+2){grid-column:span 2}
+    .sheet>*:nth-child(5n+3){grid-column:span 3}
+    .sheet>*:nth-child(5n+4){grid-column:span 3}
+    .sheet>*:nth-child(5n+5){grid-column:span 6}
   }
-  @keyframes cardIn{from{opacity:0;transform:translateY(10px) rotate(var(--tilt))}}
-  .card .art{display:flex;align-items:center;justify-content:center;height:210px;overflow:hidden}
-  .card img{max-width:100%;max-height:100%;display:block}
-  .card .who{font-family:var(--mono);font-size:11px;color:rgba(23,23,27,0.62);display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line-soft);padding-top:9px}
-  .card .who b{color:var(--ink)}
-  .empty{font-size:13.5px;color:rgba(23,23,27,0.65);text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:2px;line-height:1.8}
-  footer{font-size:12.5px;color:rgba(23,23,27,0.62);text-align:center;padding-bottom:8px;line-height:1.7}
-  a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  @media(prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none;animation:none}}
+  @media(min-width:981px){
+    .sheet{grid-template-columns:repeat(12,1fr)}
+    .sheet>*:nth-child(9n+1){grid-column:span 5}
+    .sheet>*:nth-child(9n+2){grid-column:span 4}
+    .sheet>*:nth-child(9n+3){grid-column:span 3}
+    .sheet>*:nth-child(9n+4){grid-column:span 7}
+    .sheet>*:nth-child(9n+5){grid-column:span 5}
+    .sheet>*:nth-child(9n+6){grid-column:span 4}
+    .sheet>*:nth-child(9n+7){grid-column:span 8}
+    .sheet>*:nth-child(9n+8){grid-column:span 6}
+    .sheet>*:nth-child(9n+9){grid-column:span 6}
+  }
+
+  .empty{font-size:13px;font-style:italic;color:var(--quiet);text-align:center;padding:90px 20px;line-height:2}
+  .empty a{color:var(--ink)}
+  footer{font-size:11.5px;font-style:italic;color:var(--quiet);text-align:center;padding:26px 20px 6px;line-height:1.7}
+
+  /* ---------- lightbox ---------- */
+  .lb{position:fixed;inset:0;background:#fff;z-index:30;display:flex;align-items:center;justify-content:center;padding:56px 72px}
+  .lb[hidden]{display:none}
+  .lb figure{max-width:min(880px,100%);width:100%;display:flex;flex-direction:column;align-items:center}
+  .lb img{max-width:100%;max-height:68vh;width:auto;height:auto;display:block}
+  .lb figcaption{width:100%;max-width:560px;margin-top:26px;border-top:1px solid var(--rule);padding-top:10px}
+  .lb .label{font-size:12.5px}
+  .lb .handle-row{visibility:visible;font-size:12.5px;margin-top:2px}
+  .lb button{font-family:var(--serif);background:none;border:none;color:var(--ink);cursor:pointer;position:absolute;padding:10px 14px;font-size:24px;line-height:1}
+  .lb button:hover{opacity:0.55}
+  .lb button:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+  .lb .x{top:14px;right:18px}
+  .lb .prev{left:12px;top:50%;transform:translateY(-50%)}
+  .lb .next{right:12px;top:50%;transform:translateY(-50%)}
+  @media(max-width:600px){.lb{padding:56px 20px}.lb .prev{left:2px}.lb .next{right:2px}}
+
+  a:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
 </style>
 </head>
 <body>
@@ -52,10 +107,6 @@
   <filter id="chromeBoilFine" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
     <feTurbulence id="chromeNoiseFine" type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="7" result="n"/>
     <feDisplacementMap in="SourceGraphic" in2="n" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
-  </filter>
-  <filter id="chromeBoil" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
-    <feTurbulence id="chromeNoise" type="fractalNoise" baseFrequency="0.024" numOctaves="2" seed="7" result="n"/>
-    <feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
 </defs></svg>
 <div class="wrap">
@@ -69,33 +120,126 @@
     </div>
     <a class="backlink" href="/">← make your own</a>
   </header>
-  <div class="grid" id="grid"></div>
+</div>
+<div class="sheetrule" role="presentation"></div>
+<div class="wrap" style="padding-top:0;padding-bottom:0">
+  <div class="sheetclip">
+    <div class="sheet" id="sheet"></div>
+  </div>
   <div class="empty" id="empty" style="display:none">Nothing on the wall yet.<br>Draw something, boil it, and hit “Pin to the Doodle Wall”.</div>
   <footer>Every doodle here was drawn by hand, scanned, and boiled.</footer>
 </div>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Doodle" tabindex="-1" hidden>
+  <button class="x" aria-label="Close">×</button>
+  <button class="prev" aria-label="Previous doodle">‹</button>
+  <button class="next" aria-label="Next doodle">›</button>
+  <figure>
+    <img id="lbImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAAIBAA7" alt="">
+    <figcaption>
+      <div class="label"><span class="name" id="lbName"></span><span class="loc" id="lbLoc"></span></div>
+      <div class="handle-row" id="lbHandle"></div>
+    </figcaption>
+  </figure>
+</div>
+
 <script>
 (async () => {
-  const grid=document.getElementById('grid'), empty=document.getElementById('empty');
-  try{
-    const r=await fetch('/api/wall'); const {items=[]}=await r.json();
-    if(!items.length){ empty.style.display='block'; return; }
-    let idx=0;
-    for(const it of items){
-      const card=document.createElement('div'); card.className='card';
-      card.style.animationDelay=Math.min(idx++*45,360)+'ms';
-      const art=document.createElement('div'); art.className='art';
-      const img=document.createElement('img'); img.src=it.gifUrl; img.alt=it.name?`Doodle by ${it.name}`:'Doodle';
-      img.loading='lazy';
-      art.appendChild(img); card.appendChild(art);
-      const who=document.createElement('div'); who.className='who';
-      const nm=document.createElement('span'); nm.innerHTML=it.name?`<b></b>`:'<b>anonymous</b>';
-      if(it.name) nm.querySelector('b').textContent=it.name;
-      const loc=document.createElement('span'); loc.textContent=it.location||'';
-      who.appendChild(nm); who.appendChild(loc); card.appendChild(who);
-      grid.appendChild(card);
-    }
-  }catch(e){ empty.style.display='block'; empty.textContent='Could not load the wall right now.'; }
+  const sheet=document.getElementById('sheet'), empty=document.getElementById('empty');
+  const lb=document.getElementById('lb'), lbImg=document.getElementById('lbImg');
+  const lbName=document.getElementById('lbName'), lbLoc=document.getElementById('lbLoc'), lbHandle=document.getElementById('lbHandle');
+  let items=[];
 
+  const caption=(it)=>{
+    const label=document.createElement('div'); label.className='label';
+    const nm=document.createElement('span'); nm.className='name'+(it.name?'':' anon'); nm.textContent=it.name||'anonymous';
+    const loc=document.createElement('span'); loc.className='loc'; loc.textContent=it.location||'';
+    label.appendChild(nm); label.appendChild(loc);
+    return label;
+  };
+  const handleRow=(it)=>{
+    const row=document.createElement('div'); row.className='handle-row';
+    if(it.handle){
+      const a=document.createElement('a'); a.href='https://instagram.com/'+encodeURIComponent(it.handle);
+      a.target='_blank'; a.rel='noopener'; a.textContent=it.handle;
+      a.addEventListener('click',e=>e.stopPropagation());
+      row.appendChild(a);
+    }
+    return row;
+  };
+  const piece=(it,idx)=>{
+    const p=document.createElement('div'); p.className='piece'; p.dataset.idx=idx;
+    p.setAttribute('role','button'); p.tabIndex=0; p.setAttribute('aria-haspopup','dialog');
+    p.setAttribute('aria-label',`View doodle by ${it.name||'anonymous'}${it.location?', '+it.location:''}`);
+    const art=document.createElement('div'); art.className='art';
+    const img=document.createElement('img'); img.src=it.gifUrl; img.loading='lazy';
+    img.alt=`Boiling doodle by ${it.name||'anonymous'}`;
+    art.appendChild(img); p.appendChild(art);
+    p.appendChild(caption(it)); p.appendChild(handleRow(it));
+    p.addEventListener('click',()=>open(idx));
+    p.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open(idx);} });
+    return p;
+  };
+
+  try{
+    const r=await fetch('/api/wall'); ({items=[]}=await r.json());
+    if(!items.length){ empty.style.display='block'; sheet.style.display='none'; return; }
+    let i=0, cellN=0;
+    while(i<items.length){
+      cellN++;
+      const cell=document.createElement('div'); cell.className='cell';
+      if(items.length>5 && cellN%11===5){                 // an intentional pause in the galley
+        cell.classList.add('blank'); cell.setAttribute('aria-hidden','true');
+        sheet.appendChild(cell); continue;
+      }
+      cell.appendChild(piece(items[i],i)); i++;
+      if(cellN%7===3 && i<items.length){                  // two-up column
+        cell.appendChild(piece(items[i],i)); i++;
+      }
+      sheet.appendChild(cell);
+    }
+  }catch(e){ empty.style.display='block'; sheet.style.display='none'; empty.textContent='Could not load the wall right now.'; }
+
+  /* ---------- lightbox ---------- */
+  let cur=-1, lastFocus=null;
+  function open(idx){
+    cur=idx; const it=items[idx];
+    lbImg.src=it.gifUrl; lbImg.alt=`Boiling doodle by ${it.name||'anonymous'}`;
+    lbName.textContent=it.name||'anonymous'; lbName.className='name'+(it.name?'':' anon');
+    lbLoc.textContent=it.location||'';
+    lbHandle.textContent='';
+    if(it.handle){
+      const a=document.createElement('a'); a.href='https://instagram.com/'+encodeURIComponent(it.handle);
+      a.target='_blank'; a.rel='noopener'; a.textContent=it.handle; lbHandle.appendChild(a);
+    }
+    lb.setAttribute('aria-label',`Doodle by ${it.name||'anonymous'}`);
+    if(lb.hidden){ lastFocus=document.activeElement; lb.hidden=false; document.body.style.overflow='hidden'; lb.focus(); }
+  }
+  function close(){
+    lb.hidden=true; document.body.style.overflow='';
+    if(lastFocus && lastFocus.isConnected) lastFocus.focus();
+    cur=-1;
+  }
+  const step=d=>{ if(cur<0)return; open((cur+d+items.length)%items.length); };
+  lb.querySelector('.x').addEventListener('click',close);
+  lb.querySelector('.prev').addEventListener('click',()=>step(-1));
+  lb.querySelector('.next').addEventListener('click',()=>step(1));
+  lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+  document.addEventListener('keydown',e=>{
+    if(lb.hidden) return;
+    if(e.key==='Escape') close();
+    else if(e.key==='ArrowLeft') step(-1);
+    else if(e.key==='ArrowRight') step(1);
+    else if(e.key==='Tab'){
+      const f=[...lb.querySelectorAll('button,a')].filter(el=>el.offsetParent!==null);
+      if(!f.length) return;
+      const first=f[0], last=f[f.length-1];
+      if(e.shiftKey && (document.activeElement===first||document.activeElement===lb)){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+  });
+
+  /* ---------- the wordmark boils too ---------- */
   const chromeNoise=[...document.querySelectorAll('feTurbulence[id^="chromeNoise"]')];
   if(chromeNoise.length && !matchMedia('(prefers-reduced-motion: reduce)').matches){
     const seeds=[7,19,42]; let si=0;

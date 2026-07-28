@@ -10,7 +10,7 @@
 <style>
   :root{
     --paper:#E9E7DF; --panel:#F4F2EC; --ink:#17171B;
-    --blue:#2E6389; --blue-line:#9CCADD;
+    --blue:#2E6389; --blue-line:#9CCADD; --red:#A33B3B;
     --line:rgba(23,23,27,0.14); --line-soft:rgba(23,23,27,0.07);
     --mono:'Space Mono',ui-monospace,monospace;
     --sans:'Space Grotesk',system-ui,sans-serif;
@@ -107,6 +107,7 @@
   .submitbox .bh{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue)}
   .submitbox input{font-family:var(--mono);font-size:12.5px;padding:10px 12px;border:1px solid var(--line);border-radius:2px;background:#fff;outline:none;transition:border-color 150ms ease}
   .submitbox input:focus{border-color:var(--blue)}
+  .submitbox input.miss{border-color:var(--red)}
   .submitbox .row2{display:flex;gap:8px}
   .submitbox .row2 .btn{flex:1}
   .submitbox .subnote{font-family:var(--mono);font-size:10px;color:rgba(23,23,27,0.45);line-height:1.6}
@@ -238,13 +239,14 @@
 <div class="overlay" id="submitOverlay">
   <div class="submitbox" id="submitBox">
     <div class="bh">Pin to the Doodle Wall</div>
-    <input type="text" id="subName" maxlength="40" placeholder="Your name (optional)">
-    <input type="text" id="subLoc" maxlength="40" placeholder="Where are you? (optional)">
+    <input type="text" id="subName" maxlength="40" placeholder="Your name" required aria-label="Your name (required)">
+    <input type="text" id="subLoc" maxlength="40" placeholder="Where you drew it — “NY”, “Basel”" required aria-label="Location (required)">
+    <input type="text" id="subHandle" maxlength="32" placeholder="Instagram handle (optional)" aria-label="Instagram handle (optional)" autocapitalize="off" autocorrect="off" spellcheck="false">
     <div class="row2">
       <button class="btn rec" id="subGo">Send it</button>
       <button class="btn ghost" id="subCancel">Cancel</button>
     </div>
-    <div class="subnote">Your loop goes in exactly as previewed. It appears on the wall once approved.</div>
+    <div class="subnote">Name and place become your wall label — like in a gallery. Your loop goes in exactly as previewed, once approved.</div>
   </div>
 </div>
 
@@ -821,6 +823,17 @@
   const onServer = location.protocol.startsWith('http');
   async function submitToWall(){
     if(busy||!img||!frames.length) return;
+    const subName=$('#subName').value.trim(), subLoc=$('#subLoc').value.trim();
+    const missing=[['#subName',subName],['#subLoc',subLoc]].filter(([,v])=>!v);
+    ['#subName','#subLoc'].forEach(s=>$(s).classList.remove('miss'));
+    if(missing.length){
+      missing.forEach(([s])=>$(s).classList.add('miss'));
+      $(missing[0][0]).focus();
+      return;
+    }
+    const subHandle=$('#subHandle').value.trim()
+      .replace(/^.*instagram\.com\//i,'').replace(/^@+/,'')
+      .replace(/[^A-Za-z0-9._]/g,'').slice(0,30);
     busy=true; stopPlay(); enable(false); $('#subGo').textContent='Sending…';
     setStatus({rec:'Boiling your doodle onto the wall…'}); await sleep(20);
     try{
@@ -828,7 +841,7 @@
       if(blob.size>3_000_000) throw new Error('too big');
       const dataURL=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
       const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({gif:dataURL,name:$('#subName').value.trim(),location:$('#subLoc').value.trim()})});
+        body:JSON.stringify({gif:dataURL,name:subName,location:subLoc,handle:subHandle})});
       if(!r.ok) throw new Error('server');
       $('#submitOverlay').classList.remove('show');
       statusEl.innerHTML='Sent! Your doodle is <b>awaiting approval</b> — check the <a href="wall.html">wall</a> soon.';
@@ -924,6 +937,7 @@
   $('#submitOverlay').addEventListener('click',e=>{ if(e.target===e.currentTarget && !busy) e.currentTarget.classList.remove('show'); });
   window.addEventListener('keydown',e=>{ if(e.key==='Escape' && !busy) $('#submitOverlay').classList.remove('show'); });
   $('#subGo').addEventListener('click',submitToWall);
+  ['#subName','#subLoc'].forEach(s=>$(s).addEventListener('input',e=>e.target.classList.remove('miss')));
 
   drop.addEventListener('click',()=>fileInput.click());
   fileInput.addEventListener('change',e=>{ if(e.target.files.length) loadFiles(e.target.files); fileInput.value=''; });

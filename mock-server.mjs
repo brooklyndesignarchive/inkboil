@@ -24,16 +24,17 @@ http.createServer(async (req, res) => {
 
   try {
     if (url.pathname === '/api/submit' && req.method === 'POST') {
-      const { gif, name = '', location = '' } = await body(req);
+      const { gif, name = '', location = '', handle = '' } = await body(req);
       const m = (gif || '').match(/^data:image\/gif;base64,([A-Za-z0-9+/=]+)$/);
       if (!m) return send(400, { error: 'not a gif data url' });
       const buf = Buffer.from(m[1], 'base64');
       if (!buf.subarray(0, 6).toString('latin1').startsWith('GIF8')) return send(400, { error: 'invalid gif' });
       const id = crypto.randomUUID();
       const clean = s => String(s).slice(0, 60).replace(/[<>&"']/g, '');
+      const cleanHandle = s => String(s).replace(/^@+/, '').replace(/[^A-Za-z0-9._]/g, '').slice(0, 30);
       fs.writeFileSync(path.join(STORE, 'pending', id + '.gif'), buf);
       fs.writeFileSync(path.join(STORE, 'pending', id + '.json'), JSON.stringify({
-        id, name: clean(name), location: clean(location), ts: Date.now(), gifUrl: `/blob/pending/${id}.gif`
+        id, name: clean(name), location: clean(location), handle: cleanHandle(handle), ts: Date.now(), gifUrl: `/blob/pending/${id}.gif`
       }));
       return send(200, { ok: true, id });
     }

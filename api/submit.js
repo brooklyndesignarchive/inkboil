@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   try {
-    const { gif, name = '', location = '' } = req.body || {};
+    const { gif, name = '', location = '', handle = '' } = req.body || {};
     if (!gif || typeof gif !== 'string') return res.status(400).json({ error: 'missing gif' });
     const m = gif.match(/^data:image\/gif;base64,([A-Za-z0-9+/=]+)$/);
     if (!m) return res.status(400).json({ error: 'not a gif data url' });
@@ -16,11 +16,12 @@ export default async function handler(req, res) {
 
     const id = crypto.randomUUID();
     const clean = s => String(s).slice(0, 60).replace(/[<>&"']/g, '');
+    const cleanHandle = s => String(s).replace(/^@+/, '').replace(/[^A-Za-z0-9._]/g, '').slice(0, 30);
     const { url: gifUrl } = await put(`doodles/pending/${id}.gif`, buf, {
       access: 'public', contentType: 'image/gif', addRandomSuffix: false
     });
     await put(`doodles/pending/${id}.json`, JSON.stringify({
-      id, name: clean(name), location: clean(location), ts: Date.now(), gifUrl
+      id, name: clean(name), location: clean(location), handle: cleanHandle(handle), ts: Date.now(), gifUrl
     }), { access: 'public', contentType: 'application/json', addRandomSuffix: false });
 
     res.status(200).json({ ok: true, id });

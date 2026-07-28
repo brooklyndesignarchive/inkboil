@@ -95,7 +95,7 @@
     const img=document.createElement('img'); img.src=it.gifUrl; art.appendChild(img); c.appendChild(art);
     const who=document.createElement('div'); who.className='who';
     const nm=document.createElement('b'); nm.textContent=it.name||'anonymous';
-    const loc=document.createElement('span'); loc.textContent=it.location||'';
+    const loc=document.createElement('span'); loc.textContent=(it.location||'')+(it.handle?' · @'+it.handle:'');
     who.appendChild(nm); who.appendChild(loc); c.appendChild(who);
     const row=document.createElement('div'); row.className='row';
     if(scope==='pending'){
