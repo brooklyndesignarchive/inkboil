@@ -45,8 +45,8 @@
   .sheetclip{overflow:hidden;border-bottom:1px solid var(--rule)}
   .sheet{display:grid;grid-template-columns:1fr;margin:0 -2px -1px 0} /* -2 not -1: retina rounding can leave a sliver of the clipped edge rule */
   .cell{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
-    --px:clamp(16px,2.2vw,30px);
-    padding:clamp(18px,2.6vw,34px) var(--px) 15px;
+    --px:clamp(14px,1.8vw,24px);
+    padding:clamp(16px,2vw,26px) var(--px) 14px;
     display:flex;flex-direction:column;background:#fff}
   .cell.blank{padding:0}
   @media(max-width:600px){.cell.blank{display:none}} /* a pause doesn't read in a single column */
@@ -74,36 +74,40 @@
   }
   @media(min-width:981px){
     .sheet{grid-template-columns:repeat(12,1fr)}
-    .sheet>*:nth-child(9n+1){grid-column:span 5}
-    .sheet>*:nth-child(9n+2){grid-column:span 4}
-    .sheet>*:nth-child(9n+3){grid-column:span 3}
-    .sheet>*:nth-child(9n+4){grid-column:span 7}
-    .sheet>*:nth-child(9n+5){grid-column:span 5}
-    .sheet>*:nth-child(9n+6){grid-column:span 4}
-    .sheet>*:nth-child(9n+7){grid-column:span 8}
-    .sheet>*:nth-child(9n+8){grid-column:span 6}
-    .sheet>*:nth-child(9n+9){grid-column:span 6}
+    .sheet>*:nth-child(12n+1){grid-column:span 4}
+    .sheet>*:nth-child(12n+2){grid-column:span 3}
+    .sheet>*:nth-child(12n+3){grid-column:span 5}
+    .sheet>*:nth-child(12n+4){grid-column:span 3}
+    .sheet>*:nth-child(12n+5){grid-column:span 5}
+    .sheet>*:nth-child(12n+6){grid-column:span 4}
+    .sheet>*:nth-child(12n+7){grid-column:span 4}
+    .sheet>*:nth-child(12n+8){grid-column:span 4}
+    .sheet>*:nth-child(12n+9){grid-column:span 4}
+    .sheet>*:nth-child(12n+10){grid-column:span 5}
+    .sheet>*:nth-child(12n+11){grid-column:span 3}
+    .sheet>*:nth-child(12n+12){grid-column:span 4}
   }
 
+  .sheetbar{display:flex;justify-content:flex-end;padding:12px 0 10px}
+  .sheetbar button{position:relative;font-family:var(--serif);font-size:var(--t-small);letter-spacing:var(--track);text-transform:uppercase;color:var(--ink);background:none;border:none;border-bottom:1px solid var(--rule);padding:0 0 2px;cursor:pointer;line-height:1.4}
+  .sheetbar button::after{content:'';position:absolute;inset:-14px -9px}
+  .sheetbar button:hover{border-bottom-color:var(--ink)}
+  .sheetbar button:active{opacity:0.5}
   .empty{font-size:var(--t-body);font-style:italic;color:var(--quiet);text-align:center;padding:90px 20px;line-height:2;text-wrap:balance}
   .empty a{color:var(--ink)}
 
-  /* ---------- lightbox ---------- */
-  .lb{position:fixed;inset:0;background:#fff;z-index:30;display:flex;align-items:center;justify-content:center;padding:56px 72px;animation:lbIn 180ms ease-out}
-  @keyframes lbIn{from{opacity:0}}
-  .lb[hidden]{display:none}
-  .lb figure{max-width:min(880px,100%);width:100%;display:flex;flex-direction:column;align-items:center}
-  .lb img{max-width:100%;max-height:68vh;width:auto;height:auto;display:block}
-  .lb figcaption{width:100%;max-width:560px;margin-top:26px;border-top:1px solid var(--rule);padding-top:10px}
-  .lb .label{font-size:var(--t-body)}
-  .lb button{font-family:var(--serif);background:none;border:none;color:var(--ink);cursor:pointer;position:absolute;padding:10px 14px;font-size:var(--t-glyph);line-height:1}
-  .lb button:hover{opacity:0.55}
-  .lb button:active{opacity:0.35;scale:0.96}
-  .lb button:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
-  .lb .x{top:14px;right:18px}
-  .lb .prev{left:12px;top:50%;transform:translateY(-50%)}
-  .lb .next{right:12px;top:50%;transform:translateY(-50%)}
-  @media(max-width:600px){.lb{padding:56px 20px}.lb .prev{left:2px}.lb .next{right:2px}}
+  /* ---------- lightbox: the About panel, sized for a drawing ---------- */
+  .lbx{width:min(780px,calc(100% - 24px));padding:38px 48px 26px}
+  .lbx figure{display:flex;flex-direction:column;align-items:center}
+  .lbx img{max-width:100%;max-height:60vh;width:auto;height:auto;display:block}
+  .lbx figcaption{width:100%;margin-top:20px;border-top:1px solid var(--rule);padding-top:10px}
+  .lbx .label{font-size:var(--t-body);display:flex;justify-content:space-between;gap:14px}
+  .lbx .prev,.lbx .next{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--serif);font-size:var(--t-glyph);line-height:1;background:none;border:none;color:var(--ink);cursor:pointer;padding:10px 12px}
+  .lbx .prev{left:2px}
+  .lbx .next{right:2px}
+  .lbx .prev:hover,.lbx .next:hover{opacity:0.55}
+  .lbx .prev:active,.lbx .next:active{opacity:0.35;scale:0.96}
+  @media(max-width:600px){.lbx{padding:34px 30px 22px}}
 
   a:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
 
@@ -131,7 +135,6 @@
     .about,.about::backdrop{transition:opacity 160ms ease}
     .about[open],.about.closing{transform:none}
     @starting-style{.about[open]{transform:none}}
-    .lb{animation:none}
   }
   @media(prefers-reduced-transparency:reduce){
     .about::backdrop{background:rgba(255,255,255,0.96);backdrop-filter:none}
@@ -156,6 +159,7 @@
 </div>
 <div class="sheetrule" role="presentation"></div>
 <div class="wrap" style="padding-top:0;padding-bottom:0">
+  <div class="sheetbar"><button id="shuffle" style="display:none">Shuffle the wall</button></div>
   <div class="sheetclip">
     <div class="sheet" id="sheet"></div>
   </div>
@@ -170,7 +174,7 @@
   <p>Draw something, lift it off the paper with <a href="/">Ink Boil</a>, and pin it. It appears here once approved.</p>
 </dialog>
 
-<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Doodle" tabindex="-1" hidden>
+<dialog class="about lbx" id="lb" aria-label="Doodle">
   <button class="x" aria-label="Close">×</button>
   <button class="prev" aria-label="Previous doodle">‹</button>
   <button class="next" aria-label="Next doodle">›</button>
@@ -180,7 +184,7 @@
       <div class="label"><span class="name" id="lbName"></span><span class="loc" id="lbLoc"></span></div>
     </figcaption>
   </figure>
-</div>
+</dialog>
 
 <script>
 (async () => {
@@ -220,9 +224,8 @@
     return p;
   };
 
-  try{
-    const r=await fetch('/api/wall'); ({items=[]}=await r.json());
-    if(!items.length){ empty.style.display='block'; sheet.style.display='none'; return; }
+  function render(){
+    sheet.innerHTML='';
     let i=0, cellN=0;
     while(i<items.length){
       cellN++;
@@ -237,40 +240,47 @@
       }
       sheet.appendChild(cell);
     }
+  }
+  try{
+    const r=await fetch('/api/wall'); ({items=[]}=await r.json());
+    if(!items.length){ empty.style.display='block'; sheet.style.display='none'; return; }
+    render();
+    if(items.length>1){
+      const sh=document.getElementById('shuffle');
+      sh.style.display='';
+      sh.addEventListener('click',()=>{
+        for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; }
+        render();
+      });
+    }
   }catch(e){ empty.style.display='block'; sheet.style.display='none'; empty.textContent='Could not load the wall right now.'; }
 
-  /* ---------- lightbox ---------- */
-  let cur=-1, lastFocus=null;
+  /* ---------- lightbox: same dialog manners as About ---------- */
+  let cur=-1;
   function open(idx){
     cur=idx; const it=items[idx];
     lbImg.src=it.gifUrl; lbImg.alt=`Boiling doodle by ${it.name||'anonymous'}`;
     lbName.textContent=it.name||'anonymous'; lbName.className='name'+(it.name?'':' anon');
     fillLoc(lbLoc,it);
     lb.setAttribute('aria-label',`Doodle by ${it.name||'anonymous'}`);
-    if(lb.hidden){ lastFocus=document.activeElement; lb.hidden=false; document.body.style.overflow='hidden'; lb.focus(); }
+    if(!lb.open){ lb.showModal(); document.body.style.overflow='hidden'; }
   }
-  function close(){
-    lb.hidden=true; document.body.style.overflow='';
-    if(lastFocus && lastFocus.isConnected) lastFocus.focus();
-    cur=-1;
+  function closeLb(){
+    if(lb.classList.contains('closing')) return;
+    lb.classList.add('closing');
+    const done=()=>{ lb.close(); lb.classList.remove('closing'); document.body.style.overflow=''; cur=-1; };
+    matchMedia('(prefers-reduced-motion: reduce)').matches ? setTimeout(done,160) : setTimeout(done,230);
   }
   const step=d=>{ if(cur<0)return; open((cur+d+items.length)%items.length); };
-  lb.querySelector('.x').addEventListener('click',close);
+  lb.querySelector('.x').addEventListener('click',closeLb);
   lb.querySelector('.prev').addEventListener('click',()=>step(-1));
   lb.querySelector('.next').addEventListener('click',()=>step(1));
-  lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+  lb.addEventListener('click',e=>{ if(e.target===lb) closeLb(); });
+  lb.addEventListener('cancel',e=>{ e.preventDefault(); closeLb(); });
   document.addEventListener('keydown',e=>{
-    if(lb.hidden) return;
-    if(e.key==='Escape') close();
-    else if(e.key==='ArrowLeft') step(-1);
+    if(!lb.open) return;
+    if(e.key==='ArrowLeft') step(-1);
     else if(e.key==='ArrowRight') step(1);
-    else if(e.key==='Tab'){
-      const f=[...lb.querySelectorAll('button,a')].filter(el=>el.offsetParent!==null);
-      if(!f.length) return;
-      const first=f[0], last=f[f.length-1];
-      if(e.shiftKey && (document.activeElement===first||document.activeElement===lb)){ e.preventDefault(); last.focus(); }
-      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
-    }
   });
 
   /* ---------- about ---------- */
@@ -285,6 +295,13 @@
   about.querySelector('.x').addEventListener('click',closeAbout);
   about.addEventListener('click',e=>{ if(e.target===about) closeAbout(); });          // the backdrop is the dialog's own hit area
   about.addEventListener('cancel',e=>{ e.preventDefault(); closeAbout(); });          // Esc exits along the entrance path too
+
+  /* ---------- counters (anonymous, fire-and-forget) ---------- */
+  if(location.protocol.startsWith('http')){
+    const ping=e=>{ try{ navigator.sendBeacon('/api/track',e); }catch(_){} };
+    ping('view_wall');
+    try{ if(!localStorage.getItem('ib_seen')){ localStorage.setItem('ib_seen','1'); ping('user'); } }catch(_){}
+  }
 
   /* ---------- the wordmark boils too ---------- */
   const chromeNoise=[...document.querySelectorAll('feTurbulence[id^="chromeNoise"]')];

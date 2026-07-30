@@ -10,7 +10,7 @@ const ROOT = path.dirname(decodeURIComponent(new URL(import.meta.url).pathname))
 const STORE = path.join(ROOT, '.mock-blob');
 const PW = 'test';
 const PORT = Number(process.env.PORT) || 3131;
-for (const d of ['pending', 'approved']) fs.mkdirSync(path.join(STORE, d), { recursive: true });
+for (const d of ['pending', 'approved', 'stats']) fs.mkdirSync(path.join(STORE, d), { recursive: true });
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.gif': 'image/gif', '.png': 'image/png' };
 const listMeta = dir => fs.readdirSync(path.join(STORE, dir)).filter(f => f.endsWith('.json'))
@@ -38,10 +38,29 @@ http.createServer(async (req, res) => {
       }));
       return send(200, { ok: true, id });
     }
+    if (url.pathname === '/api/track' && req.method === 'POST') {
+      const raw = await new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => r(b)); });
+      const EVENTS = ['user', 'view_tool', 'view_wall', 'drawing_loaded', 'export_video', 'export_gif', 'send', 'submit'];
+      let e = raw.trim(); try { e = JSON.parse(raw).e || e; } catch {}
+      if (!EVENTS.includes(e)) return send(400, { error: 'bad event' });
+      fs.appendFileSync(path.join(STORE, 'stats', e + '.log'), '1');
+      return send(200, { ok: true });
+    }
     if (url.pathname === '/api/wall') return send(200, { items: listMeta('approved') });
     if (url.pathname === '/api/admin') {
       if (req.headers['x-admin-password'] !== PW) return send(401, { error: 'unauthorized' });
       if (req.method === 'GET') {
+        if (url.searchParams.get('scope') === 'stats') {
+          const EVENTS = ['user', 'view_tool', 'view_wall', 'drawing_loaded', 'export_video', 'export_gif', 'send', 'submit'];
+          const counts = {};
+          for (const e of EVENTS) {
+            const f = path.join(STORE, 'stats', e + '.log');
+            counts[e] = fs.existsSync(f) ? fs.statSync(f).size : 0;   // one byte per event
+          }
+          counts.pending = listMeta('pending').length;
+          counts.approved = listMeta('approved').length;
+          return send(200, { scope: 'stats', counts });
+        }
         const scope = url.searchParams.get('scope') === 'approved' ? 'approved' : 'pending';
         return send(200, { scope, items: listMeta(scope) });
       }

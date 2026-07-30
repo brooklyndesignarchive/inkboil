@@ -9,6 +9,23 @@ const authed = req =>
 export default async function handler(req, res) {
   if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
   try {
+    if (req.method === 'GET' && req.query?.scope === 'stats') {
+      const EVENTS = ['user', 'view_tool', 'view_wall', 'drawing_loaded',
+                      'export_video', 'export_gif', 'send', 'submit'];
+      const countPrefix = async prefix => {
+        let n = 0, cursor;
+        do {
+          const page = await list({ prefix, limit: 1000, cursor });
+          n += page.blobs.length; cursor = page.hasMore ? page.cursor : null;
+        } while (cursor);
+        return n;
+      };
+      const counts = {};
+      await Promise.all(EVENTS.map(async e => { counts[e] = await countPrefix(`stats/${e}/`); }));
+      counts.pending = Math.round(await countPrefix('doodles/pending/') / 2);   // gif + json per doodle
+      counts.approved = Math.round(await countPrefix('doodles/approved/') / 2);
+      return res.status(200).json({ scope: 'stats', counts });
+    }
     if (req.method === 'GET') {
       const scope = req.query?.scope === 'approved' ? 'approved' : 'pending';
       const { blobs } = await list({ prefix: `doodles/${scope}/`, limit: 1000 });

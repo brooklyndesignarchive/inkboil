@@ -42,6 +42,10 @@
   .msg{font-family:var(--mono);font-size:12px;color:rgba(23,23,27,0.55);text-align:center;padding:40px 20px;border:1px dashed var(--line);border-radius:2px}
   .err{color:var(--red)}
   #board{display:none;flex-direction:column;gap:18px}
+  .stats{display:none;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+  .stat{background:var(--panel);padding:13px 14px}
+  .stat b{display:block;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+  .stat span{font-family:var(--mono);font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(23,23,27,0.55)}
   .tabs{display:flex;gap:0;border:1px solid var(--line);border-radius:2px;overflow:hidden;align-self:flex-start}
   .tabs button{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:10px 18px;
     background:transparent;border:none;border-right:1px solid var(--line);color:var(--ink);cursor:pointer;transition:background .12s,color .12s}
@@ -67,6 +71,7 @@
   </div>
 
   <div id="board">
+    <div class="stats" id="stats" aria-label="Numbers"></div>
     <div class="tabs" role="tablist">
       <button id="tabPending" role="tab" aria-selected="true">Pending<span class="n" id="nPending"></span></button>
       <button id="tabApproved" role="tab" aria-selected="false">On the wall<span class="n" id="nApproved"></span></button>
@@ -146,15 +151,31 @@
     $('#empty').style.display=items.length?'none':'block';
     $('#login').style.display='none'; $('#board').style.display='flex';
   }
+  const STAT_LABELS=[['user','Visitors'],['view_tool','Tool views'],['view_wall','Wall views'],
+    ['drawing_loaded','Drawings loaded'],['export_video','Videos saved'],['export_gif','GIFs saved'],
+    ['send','Sent to friends'],['submit','Wall submissions'],['approved','On the wall'],['pending','Awaiting review']];
+  async function loadStats(){
+    try{
+      const {counts={}}=await api('GET',null,'?scope=stats');
+      const box=$('#stats'); box.innerHTML='';
+      for(const [k,label] of STAT_LABELS){
+        const d=document.createElement('div'); d.className='stat';
+        const b=document.createElement('b'); b.textContent=(counts[k]??0).toLocaleString();
+        const sp=document.createElement('span'); sp.textContent=label;
+        d.appendChild(b); d.appendChild(sp); box.appendChild(d);
+      }
+      box.style.display='grid';
+    }catch(e){}
+  }
   $('#tabPending').onclick=()=>load('pending').catch(()=>{});
   $('#tabApproved').onclick=()=>load('approved').catch(()=>{});
   $('#enter').onclick=async()=>{
     pw=$('#pw').value;
-    try{ await load(); sessionStorage.setItem('inkboil-admin',pw); }
+    try{ await load(); loadStats(); sessionStorage.setItem('inkboil-admin',pw); }
     catch(e){ const m=$('#loginMsg'); m.style.display='block'; m.textContent='Wrong password.'; }
   };
   $('#pw').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#enter').click(); });
-  if(pw){ load().catch(()=>{ sessionStorage.removeItem('inkboil-admin'); }); }
+  if(pw){ load().then(loadStats).catch(()=>{ sessionStorage.removeItem('inkboil-admin'); }); }
 })();
 </script>
 </body>

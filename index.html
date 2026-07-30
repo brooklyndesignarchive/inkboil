@@ -689,7 +689,7 @@
     arr.forEach(f=>{
       const r=new FileReader();
       r.onload=e=>{
-        queue.push({name:f.name, dataURL:e.target.result});
+        queue.push({name:f.name, dataURL:e.target.result}); ping('drawing_loaded');
         if(--remaining===0){
           drop.classList.add('hide'); enable(true); renderTray();
           if(wasEmpty) setActive(0);
@@ -748,6 +748,7 @@
     busy=true; stopPlay(); enable(false); $('#exportMp4').textContent='Recording…';
     try{
       const {blob,ext}=await recordVideoBlob((f)=>setStatus({rec:`Recording ${(f/state.fps).toFixed(1)}s / ${state.dur.toFixed(1)}s`}));
+      ping('export_video');
       const d=await deliver(blob,'ink-boil.'+ext,blob.type||'video/'+ext);
       if(d.sheet){ setStatus('Pick “Save Video” in the sheet to drop it into Photos.'); busy=false; enable(true); $('#exportMp4').textContent='Save as video'; startPlay(); return; }
       const kb=Math.round(d.size/1024);
@@ -843,13 +844,13 @@
     busy=true; stopPlay(); enable(false); $('#exportGif').textContent='Building…';
     if(isiOS){
       // built synchronously so the share sheet still counts this as the tap
-      const blob=buildGIF(frames,state.fps);
+      const blob=buildGIF(frames,state.fps); ping('export_gif');
       const d=await deliver(blob,'ink-boil-loop.gif','image/gif');
       if(d.sheet) setStatus('Pick “Save Image” in the sheet to drop it into Photos.');
       else statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · transparent · ${frames.length} frames · ${Math.round(d.size/1024)} KB`;
       busy=false; enable(true); $('#exportGif').textContent='Save as GIF'; startPlay(); return;
     }
-    setStatus({rec:'Building GIF…'}); await sleep(20);
+    setStatus({rec:'Building GIF…'}); ping('export_gif'); await sleep(20);
     const blob=buildGIF(frames,state.fps);
     const kb=Math.round(saveBlob(blob,'ink-boil-loop.gif')/1024);
     statusEl.innerHTML=`Saved <b>ink-boil-loop.gif</b> · transparent · ${frames.length} frames · ${kb} KB`;
@@ -868,8 +869,8 @@
       const blob=buildGIF(frames,state.fps);
       const file=new File([blob],'ink-boil.gif',{type:'image/gif'});
       if(canShareGif){
-        await navigator.share({files:[file],title:'Ink Boil doodle'});
-        setStatus('Sent!');
+        await navigator.share({files:[file],title:'Ink Boil doodle',text:'Made using InkBoil.com'});
+        ping('send'); setStatus('Sent!');
       } else {
         const kb=Math.round(saveBlob(blob,'ink-boil.gif')/1024);
         statusEl.innerHTML=`This browser can’t open a share sheet, so the loop was saved — <b>ink-boil.gif</b> · ${kb} KB. Attach it anywhere.`;
@@ -881,8 +882,13 @@
     busy=false; enable(true); $('#sendBtn').textContent='Send to a friend'; startPlay();
   }
 
-  /* ---------- doodle wall submission ---------- */
+  /* ---------- counters (anonymous, fire-and-forget) ---------- */
   const onServer = location.protocol.startsWith('http');
+  const ping=e=>{ if(!onServer) return; try{ navigator.sendBeacon('/api/track',e); }catch(_){} };
+  ping('view_tool');
+  try{ if(onServer && !localStorage.getItem('ib_seen')){ localStorage.setItem('ib_seen','1'); ping('user'); } }catch(_){}
+
+  /* ---------- doodle wall submission ---------- */
   async function submitToWall(){
     if(busy||!img||!frames.length) return;
     const subName=$('#subName').value.trim(), subLoc=$('#subLoc').value.trim();
@@ -905,6 +911,7 @@
       const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({gif:dataURL,name:subName,location:subLoc,handle:subHandle})});
       if(!r.ok) throw new Error('server');
+      ping('submit');
       $('#submitOverlay').classList.remove('show');
       statusEl.innerHTML='Sent! Your doodle is <b>awaiting approval</b> — check the <a href="wall.html">wall</a> soon.';
     }catch(e){
