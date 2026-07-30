@@ -56,9 +56,9 @@
   .piece img{width:100%;height:auto;display:block}
   .label{font-size:var(--t-small);line-height:1.55;}
   .label{display:flex;justify-content:space-between;gap:14px}
-  .label .name{color:var(--ink)}
+  .label .name{color:var(--ink);overflow-wrap:anywhere}
   .label .name.anon{font-style:italic;color:var(--quiet)}
-  .label .loc{color:var(--quiet);text-align:right}
+  .label .loc{color:var(--quiet);text-align:right;overflow-wrap:anywhere}
   .label .loc a{color:var(--quiet);text-decoration:none;border-bottom:1px solid var(--rule)}
   .label .loc a:hover{color:var(--ink);border-bottom-color:var(--ink)}
   .piece:focus-visible{outline:1px solid var(--ink);outline-offset:6px}
@@ -135,6 +135,10 @@
     .about,.about::backdrop{transition:opacity 160ms ease}
     .about[open],.about.closing{transform:none}
     @starting-style{.about[open]{transform:none}}
+    .lb button:active,.about .x:active,.lbx .prev:active,.lbx .next:active{scale:none}
+  }
+  @media(prefers-contrast:more){
+    :root{--rule:#767676}
   }
   @media(prefers-reduced-transparency:reduce){
     .about::backdrop{background:rgba(255,255,255,0.96);backdrop-filter:none}

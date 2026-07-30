@@ -160,6 +160,9 @@
     .about[open],.about.closing{transform:none}
     @starting-style{.about[open]{transform:none}}
   }
+  @media(prefers-contrast:more){
+    :root{--rule:#767676}
+  }
   @media(prefers-reduced-transparency:reduce){
     .overlay{background:rgba(255,255,255,0.96);backdrop-filter:none}
     .about::backdrop{background:rgba(255,255,255,0.96);backdrop-filter:none}
