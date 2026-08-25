@@ -124,6 +124,7 @@
   .about h2{font-size:var(--t-body);font-weight:normal;letter-spacing:var(--track);text-transform:uppercase;margin-bottom:18px;text-wrap:balance}
   .about p{font-size:var(--t-body);line-height:1.75;margin-bottom:13px;text-wrap:pretty}
   .about p:last-of-type{margin-bottom:0}
+  .about .colophon{margin-top:20px;padding-top:15px;border-top:1px solid var(--rule-soft);font-size:var(--t-small);color:var(--quiet)}
   .about a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule)}
   .about a:hover{border-bottom-color:var(--ink)}
   .about .x{position:absolute;top:8px;right:10px;font-family:var(--serif);font-size:var(--t-glyph);line-height:1;background:none;border:none;color:var(--ink);cursor:pointer;padding:8px 10px}
@@ -176,6 +177,7 @@
   <!-- Interim copy assembled from the product's own lines — awaiting the real text. -->
   <p>Every doodle here was drawn by hand, scanned, and boiled — by people like you.</p>
   <p>Draw something, lift it off the paper with <a href="/">Ink Boil</a>, and pin it. It appears here once approved.</p>
+  <p class="colophon">Made by Gerardo Torres Davila in New York City, 2026.</p>
 </dialog>
 
 <dialog class="about lbx" id="lb" aria-label="Doodle">
@@ -247,15 +249,19 @@
   }
   try{
     const r=await fetch('/api/wall'); ({items=[]}=await r.json());
-    if(!items.length){ empty.style.display='block'; sheet.style.display='none'; return; }
-    render();
-    if(items.length>1){
-      const sh=document.getElementById('shuffle');
-      sh.style.display='';
-      sh.addEventListener('click',()=>{
-        for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; }
-        render();
-      });
+    // an empty wall is a state of the page, not the end of it — everything below
+    // (lightbox, About, counters) still has to be wired up
+    if(!items.length){ empty.style.display='block'; sheet.style.display='none'; }
+    else{
+      render();
+      if(items.length>1){
+        const sh=document.getElementById('shuffle');
+        sh.style.display='';
+        sh.addEventListener('click',()=>{
+          for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; }
+          render();
+        });
+      }
     }
   }catch(e){ empty.style.display='block'; sheet.style.display='none'; empty.textContent='Could not load the wall right now.'; }
 
