@@ -61,6 +61,34 @@
   .rotbar button:hover{border-color:var(--ink)}
   .rotbar button:active{opacity:0.5;scale:0.96}
   .rotbar button:disabled{opacity:.35;cursor:not-allowed}
+  .rotbar button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* --- crop: drawn straight onto the live preview --- */
+  .cropui{position:absolute;inset:0;pointer-events:none}
+  .cropui[hidden]{display:none}
+  .cropbox{position:absolute;pointer-events:auto;touch-action:none;cursor:crosshair;user-select:none}
+  .croprect{position:absolute;box-shadow:0 0 0 9999px rgba(255,255,255,0.72);outline:1px solid var(--ink);cursor:move}
+  .croprect::before,.croprect::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.28}
+  .croprect::before{border-left:1px solid var(--ink);border-right:1px solid var(--ink);margin:0 33.333%}
+  .croprect::after{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin:33.333% 0}
+  .ch{position:absolute;width:11px;height:11px;background:#fff;border:1px solid var(--ink)}
+  .ch::after{content:'';position:absolute;inset:-9px}   /* 29px hit area */
+  .ch.nw{left:-6px;top:-6px;cursor:nwse-resize}
+  .ch.ne{right:-6px;top:-6px;cursor:nesw-resize}
+  .ch.sw{left:-6px;bottom:-6px;cursor:nesw-resize}
+  .ch.se{right:-6px;bottom:-6px;cursor:nwse-resize}
+  .cropbar{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);padding:9px 12px}
+  .cropbar[hidden]{display:none}
+  .cropspacer{flex:1}
+  .crophint{font-size:var(--t-micro);letter-spacing:var(--track);text-transform:uppercase;color:var(--quiet);white-space:nowrap}
+  .cropbar button{font-family:var(--serif);font-size:var(--t-micro);letter-spacing:var(--track);text-transform:uppercase;padding:8px 12px;cursor:pointer;border:1px solid var(--rule);background:#fff;color:var(--ink);white-space:nowrap;transition:opacity 120ms ease,border-color 120ms ease}
+  .cropbar button:hover{border-color:var(--ink)}
+  .cropbar button:active{opacity:.5}
+  .cropbar button.go{background:var(--ink);border-color:var(--ink);color:#fff}
+  @media(max-width:600px){
+    .cropbar{gap:6px;padding:8px}
+    .cropbar button{padding:7px 8px}
+  }
+  .frame.cropping .rotbar{display:none!important}   /* beats the inline display setActive writes */
   .tray{display:none;gap:8px;overflow-x:auto;padding:2px 2px 6px}
   .thumb{position:relative;width:56px;height:56px;flex:0 0 auto;border:1px solid var(--rule);overflow:hidden;cursor:pointer;background:#fff;transition:border-color 120ms ease}
   .thumb.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
@@ -201,13 +229,29 @@
         <div class="rotbar" id="rotbar">
           <button id="rotL" title="Rotate left" aria-label="Rotate left">⟲</button>
           <button id="rotR" title="Rotate right" aria-label="Rotate right">⟳</button>
+          <button id="cropBtn" title="Crop" aria-label="Crop drawing">⌗</button>
         </div>
         <canvas id="cv"></canvas>
+        <div class="cropui" id="cropui" hidden>
+          <div class="cropbox" id="cropbox">
+            <div class="croprect" id="croprect">
+              <span class="ch nw" data-h="nw"></span><span class="ch ne" data-h="ne"></span>
+              <span class="ch sw" data-h="sw"></span><span class="ch se" data-h="se"></span>
+            </div>
+          </div>
+        </div>
         <div class="drop" id="drop">
           <svg class="demo" viewBox="0 0 291.75 430" aria-hidden="true"><g filter="url(#chromeBoilDemo)"><path d="M14.27,524.04l-4.59,7.36-7.23-1.98-1.83-4.15c-1.28-2.9-.63-6.81,2.05-8.6,1.99-1.32,3.55-2.87,5.04-4.73l4.04-5.05,9.89-13.64,13.46-20.53,5.16-8.3,4.45-7.99,10.07-17.76,3.75-7.85,11.32-22.7,2.08-4.17,5.47-9.43,7.25-13.81,3.61-7.45,3.41-6.63,1.72-3.42,3.91-8.7c3.9-7.1,6.88-14.25,9.93-21.76l5.24-12.93,2.88-6.32,3.52-7.97,5.16-12.55,7.81-19.96,6.16-13.43,2.16-5.05c1.44-3.37,2.02-7.17,2.62-10.85l2.51-8.39c.79-2.63,1.65-4.81,2.92-7.26,1.88-3.64,2.39-7.93,3.66-11.8l2.49-7.57,5.58-18.33,6.62-27.31.72-1.83c.19-.49-1.65-.95-2.12-.63l-4.87,3.36c-1.14.79-2.18,1.28-3.54,1.75l-6.31,2.18-14.33,4.44c-1.64.51-4.19-.31-5.92-.16-2.94.26-5.39.49-8.23.01l-5.34-.89c-1.01-1.07-2.39-2.48-3.76-2.47-2.93.02-4.64-1.57-6.86-2.68-3.61-1.8-5.89-3.88-7.49-7.58-1.74-4.02-3-8.1-3.69-12.54l-.83-5.4c-.39-2.51.01-4.23.94-6.52l3.34-8.22c.67-1.64,1.88-2.83,2.9-4.29l3.91-5.61,3.78-5.49,1.61-3.45c1.98.12,3.1-.31,4.24-1.7,1.61-1.95,5.93-3.46,9.35-3.9-.03-2.13-2.69-3.38-5.04-2.61l-3.13-3.94-6.36-8.29c-2.02-2.63-3.66-7-4.06-10.37l-.89-7.53c-.3-2.52-.28-5.05.48-7.45l1.67-5.22c.49-1.53,1.11-4.61,2.25-5.57l4.05-3.38,3.44-2.79,3.45-2.27c1.14-2.06,2.81-3.61,5.24-3.28,2.68-1.78,5.6-2.4,8.69-2.48,1.34-.18,2.77-.21,4.05-.06l9.15,1.1,3.12-.87c1.46,2.47,4.1,2.6,6.52,3.19l4.58,2.22c2.72,1.32,3.4,2.8,3.86.79l2.85-12.49c.59-2.6,1.53-4.38,3.18-6.51l2.75-5.38c1.75-3.43,3.87-6.88,7.12-9.1,1.66-1.13,2.93-2.32,4.24-3.99l4.01-1.91,7.04-2.74c2.7-1.05,6.09-.26,8.84.11,4.02.54,6.9,2.21,10.25,4.21l7.75,3.25,7.45,4.72,3.4,2.61,3.46,6.1,4.38,9.51c1.36,2.95.56,6.55,1,9.65.37,2.63.35,4.32-.54,6.88l.48,5.77c.6.85,2.61.79,3.71.33,1.51-.63,2.86-.6,4.52-.91l3.11-.58,5.9.91,6.35-.28c6.21-.27,12.87.55,17.92,4.54,3.92,3.09,5.24,8.54,6.27,13.17l.8,3.56c.84,3.74-.11,7.61-.99,11.32-.26,1.1-.57,2.36-1.43,2.74-2.1.92-2.54,2.78-2.62,4.73l-13.35,11.18c-3.1,2.6-7,4.52-10.56,6.5l-7.19,3.99c-2.31,1.28-4.14,2.01-7.17,2.86l6.05,5.19c2.97,2.54,5.66,5.92,7.83,9.22l2.79,5.96c.6,1.29.81,3.94,1.29,5.36.47,1.38,1.02,2.7,1.11,4.06l.37,5.61-2.19,10.38c-.38,1.78-1.74,4.6-2.77,6.12l-7.03,5.41-5.65,2.52c-2.29,1.02-4.46,2.41-6.73,3.21l-5.41,1.9c-3.51,1.23-7.4,1.52-11.07,1.95-5.84.69-6.02-1.28-8.03-1.67-.45-.09-1.2.98-1.65,1.12-1.89.55-4.24.2-6.27-.03l-5.82-.65c-4.76-.53-8.87-4.67-16.06-6.78-7.74-2.26-9.95-7-11.91-7.59-.54-.16-1.73,1.01-1.83,1.57l-2.28,13.52-3.18,11.13-1.98,6.76-5.59,16.97-4.47,13.73-1.16,4.02-3.47,8.58-3.65,11.24-4,9.86-1.84,5.83-8.22,20.07-2.57,6.67-3.39,9-1.13,1.56-4.04,9.37-2.04,4.72-1.67,4.11-2.24,6.86-4.55,10.28c-1.36,3.06-2.41,5.94-4.22,8.79-2.69,4.25-4.19,8.85-6.36,13.33l-3.29,6.81c-1.4,2.89-2.73,5.39-3.61,8.47-.68,2.37-2.89,4.21-3.95,6.44l-4.81,10.15c-2.69,4.1-5.2,7.89-7.2,12.46-1.53,3.48-2.92,7.11-5.03,10.25-2.65,3.93-4.35,8.06-5.58,12.64-1.43.74-2.14,1.8-2.59,3.31-2.15,7.21-6.7,12.98-9.93,19.53l-6.4,12.96-2.53,3.64c-2.23,4.74-4.33,9.38-7.87,13.21l-4.63,7-8.38,12.8-3.23,4.82-9.77,12.94h.01ZM182.69,143.92c-.21,5.03-4.04,8.92-1.57,10.78,4.64,3.5,2.06,5.42,5.87,8.18,2.21,1.61,4.34,4.11,6.97,4.87,3.34.97,6.13,2.12,8.73,4.39l7.23,2.32,8.03-.4c2.67.4,5.21-.42,7.73-.57,2.04-.12,3.92-.02,5.9-.43l6.05-1.25c2.43.24,4.43-.65,5.33-2.89,2.44-1.14,4.53-2.79,6.32-4.76l5.02-4.78c1.28-1.22.45-4.65.7-6.38.59-4,.77-7.95-1.15-11.51l-3.04-5.64c-1.21-2.25-3.29-4.05-5.26-5.72-.34-.29-1.17-1.18-1.66-1.4-7.03-3.15-5.02-6.86-16.96-7.69-2.98-.21-4.58-1.4-5.87-3.89-.5-.97-2.17-3.04-1.39-4.05l3.41-4.41,3.08,1.28c2.21-.24,4.89-1.02,6.88-.84,2.16.18,3.36.29,5.38-.47l5.3-.35,8.81-3.71,12.6-7.59c4.06-2.44,7.74-5.5,10.16-9.58,1.58-2.67,3.96-5.2,4.54-8.38.93-5.05-1.19-10.56-4.33-14.27l-6.86-.89-4.19-.41c-.24-.48-.74-1.39-.99-1.17-.18.16-.95.95-1.19.93l-7.24-.59c-2.58,2.2-5.1,2.93-8.33,3.1l-6.28.34c-1.82,1.71-4.02,3.14-6.7,2.73-4.31-.66-7.08-5.91-5.74-9.77,1.84-2.01,2.53-3.65,2.72-6.31.3-4.07,1.27-8.33.58-12.39l-1.07-6.29-1.37-5.25c-.69-2.64-4.28-2.32-4.06-3.29l.41-1.85c-2.17-1.89-4.29-5.39-7.03-6.51l-7-2.85c-2.27-.01-4.26-.58-5.48-2.75-3.13-.52-6.26-.28-9.25.76-1.99.69-3.15,1.95-4.51,3.36l-6.32,6.59c-1.49,1.55-3.16,3.64-4.01,5.47l-2.04,4.45c-1.62,3.54-3.45,10.63-2.49,14.3-.23,4.58,1.07,8.78,3.06,12.85l-4.64,5.54c-.88.93-4.06,1.04-5.11.31l-6.21-6.07c-1.87-1.82-2.47-3.77-5.28-4.65l-3.47-2.05-4.79-2.44-6.38-2.77c-.7-.3-2.33-.03-3.08.1-3.41-.74-6.45-.55-9.68.88-2.01.89-4.63,1.41-6.07,2.98l-6.89,7.53-1.84,6.86c-1.12,4.2-.6,8.59.87,12.58.72,1.95,2.55,3.2,3.56,4.65,1.45,2.07,1.47,4.32,4.72,5.22,1.35.37,3.2,1.95,4.52,2.79l5.36,3.4c4.9.85,9.87.34,14.61-1.06,1.95-.58,3.24.34,4.44,1.64,1.02,1.11,2.49,2.52,2.57,3.82l.48,7.52-3.67.05c-2.88,1.34-5.5,1.57-8.67,1.62-4.31.06-8.61,1.21-12.64,2.61l-6.52,2.27c-1.3.45-2.34,1.19-3.76,1.51l-2.41,1.79c-6.36,4.74-13.61,17.74-14.37,25.44-.41,4.11.97,8.7,2.4,12.46.98,2.57,8.07,6.67,12.21,7.12l4.4.48,5.66.4,4.38-1.01,4.66-1.45,11.12-4.34,2.76-1.47,9.27-5.69c.64-1.15,1.52-2.15,2.93-2.85l2.58-3.45,6.12-3.47c3.26-1.85,8.59,1.93,8.42,5.78h0Z"/><path d="M201.41,116.06c-3.93.85-4.17,3.89-6.93,4.08-2.02.14-3.16.69-4.88,1.61-1.84.98-5,.37-6.64-.92-2.04-1.61-3.93-2.38-6.44-3.35l-3.9-5.5c-1.78-2.51-2.78-6.16-1.83-9.19l3.42-10.92c.27-.86,1.81-2.09,2.32-2.8,2.24-3.07,5.33-5.1,9.21-4.61,2.7-1.37,5.56-1.29,8.29-.05l2.62-.29c5.01,2.61,7.07-3.7,11.86,1.96,4.86,5.75.14,15.09.98,18.09.53,1.91-.15,2.7-1.2,4.12l-3,4.06-3.88,3.71h0ZM195.99,106.47l2.66-5.09.44-3.89c.09-.79.18-1.98-.19-2.45-.95-1.19-3.29-.08-6.13-2.31-1.22-.96-2.26-.76-3.59-.3l-3.32,1.12-1.77,4.5c-1.12,2.86-3.06,5.38-1.87,8.66l1.83,2.41c.88,1.15,1.85,2.31,3.65,1.68,2.81-.99,5.83-2.61,8.27-4.32h0Z"/></g></svg>
           <h2>Drop drawings here</h2>
           <p>One or several. We take most types of image files. Only the ink is lifted.</p>
         </div>
+      </div>
+      <div class="cropbar" id="cropbar" hidden>
+        <span class="crophint" id="crophint">Drag a frame</span>
+        <span class="cropspacer"></span>
+        <button id="cropReset">Reset</button>
+        <button id="cropCancel">Cancel</button>
+        <button id="cropApply" class="go">Crop</button>
       </div>
       <div class="tray" id="tray"></div>
     </div>
@@ -304,12 +348,15 @@
   const frameEl = $('#frame'), drop = $('#drop'), badge = $('#badge');
   const fileInput = $('#file'), statusEl = $('#status');
 
-  const MAX = 1000;
+  const MAX = 1600;       // longest side of the working image
+  const BOIL_REF = 1000;  // the cap the boil sliders were tuned against
   const SEEDS = [7,19,42,88,3,61,25,50,13,71];
 
   const queue = [];
   let activeIndex = -1;
   let img = null, W = 0, H = 0, W0 = 0, H0 = 0, cropW = 0, cropH = 0, cleanURL = null, srcHadAlpha = false;
+  let manualCrop = null;   // the frame the maker drew on the preview, normalized
+  let boilK = 1;           // how much bigger this drawing is than the old cap would have made it
   let frames = [], frameIdx = 0;
   let playing = false, busy = false, rafId = null, lastStep = 0;
   let regenToken = 0;
@@ -504,8 +551,20 @@
       despeckle(d,s);
     }
     tctx.putImageData(id,0,0);
-    cleanURL = cropToContent(tmp,d).toDataURL('image/png');
+    cleanURL = cropToFrame(cropToContent(tmp,d)).toDataURL('image/png');
     cropW=W; cropH=H;
+  }
+
+  /* ---------- the maker's own frame, taken off what the preview shows ---------- */
+  function cropToFrame(c){
+    if(!manualCrop) return c;
+    const sx=Math.round(manualCrop.x*W), sy=Math.round(manualCrop.y*H);
+    const sw=Math.max(8,Math.min(W-sx,Math.round(manualCrop.w*W)));
+    const sh=Math.max(8,Math.min(H-sy,Math.round(manualCrop.h*H)));
+    const out=document.createElement('canvas'); out.width=sw; out.height=sh;
+    out.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,sw,sh);
+    W=sw; H=sh; cv.width=W; cv.height=H;
+    return out;
   }
 
   /* ---------- crop to the composition + a little air ---------- */
@@ -566,9 +625,14 @@
 
   /* ---------- boil frames ---------- */
   function buildSVG(seed){
-    // margin only needs to absorb the displacement itself (≈ intensity/2 px)
-    const m=Math.ceil(state.intensity/2)+4;
-    const bf=grainToFreq(state.grain), scale=state.intensity, iw=W-m*2, ih=H-m*2;
+    // displacement and grain are in pixels, so both are read against the drawing's
+    // own size — a sheet at 1600 boils exactly like the same sheet at 1000
+    const k=boilK;
+    const scale=state.intensity*k;
+    const bf=(state.grain/1000/k).toFixed(5);
+    // margin only needs to absorb the displacement itself (≈ scale/2 px)
+    const m=Math.ceil(scale/2)+4;
+    const iw=W-m*2, ih=H-m*2;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <defs><filter id="b" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
         <feTurbulence type="fractalNoise" baseFrequency="${bf}" numOctaves="2" seed="${seed}" stitchTiles="stitch" result="n"/>
@@ -624,10 +688,13 @@
 
   /* ---------- queue ---------- */
   function decodeImage(dataURL){ return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataURL;}); }
-  async function loadIntoGlobals(dataURL,rot=0){
+  async function loadIntoGlobals(dataURL,rot=0,crop=null){
     const i=await decodeImage(dataURL);
     let w=i.naturalWidth,h=i.naturalHeight;
     const sc=Math.min(1,MAX/Math.max(w,h));
+    // the boil is specified in pixels, so a drawing the old cap would have shrunk
+    // now needs proportionally more wobble and coarser grain to look the same
+    boilK = sc/Math.min(1,BOIL_REF/Math.max(w,h));
     w=Math.round(w*sc); h=Math.round(h*sc);
     let src=i;
     if(rot){
@@ -639,8 +706,9 @@
       cx.drawImage(i,-w/2,-h/2,w,h);
       src=c; w=c.width; h=c.height;
     }
+    manualCrop=crop||null;
     W0=W=w; H0=H=h; cv.width=W; cv.height=H; img=src;
-    badge.textContent=`${i.naturalWidth}×${i.naturalHeight}${rot?` · ${rot}°`:''}`;
+    badge.textContent=`${i.naturalWidth}×${i.naturalHeight}${rot?` · ${rot}°`:''}${crop?' · cropped':''}`;
     processSource();
   }
   async function setActive(i){
@@ -648,14 +716,129 @@
     activeIndex=i; renderTray();
     setStatus('Cleaning scan & building boil…');
     $('#rotbar').style.display='flex';
-    await loadIntoGlobals(queue[i].dataURL,queue[i].rot||0);
-    await generate(); frameIdx=0; paint(0); startPlay(); setStatus('ready');
+    await rebuild(queue[i].crop||null);
+    setStatus('ready');
+  }
+  // rebuild the boil for the active drawing under a given frame (null = the whole thing)
+  async function rebuild(crop){
+    const it=queue[activeIndex];
+    await loadIntoGlobals(it.dataURL,it.rot||0,crop);
+    await generate(); frameIdx=0; paint(0); startPlay();
   }
   async function rotate(deg){
-    if(busy||activeIndex<0) return;
-    queue[activeIndex].rot=(((queue[activeIndex].rot||0)+deg)%360+360)%360;
+    if(busy||activeIndex<0||cropping) return;
+    const it=queue[activeIndex];
+    it.rot=(((it.rot||0)+deg)%360+360)%360;
+    if(it.crop){
+      const q=(((deg/90)%4)+4)%4;              // spin the frame with the sheet
+      let r={...it.crop};
+      for(let k=0;k<q;k++) r={x:1-(r.y+r.h), y:r.x, w:r.h, h:r.w};
+      it.crop=r;
+    }
     await setActive(activeIndex);
   }
+
+  /* ---------- crop: a frame drawn on the boil itself ---------- */
+  const cropui=$('#cropui'), cropbox=$('#cropbox'), croprect=$('#croprect');
+  let cropping=false, rect=null, drag=null, stash=null;   // rect is normalized {x,y,w,h}
+  const MINC=0.04;
+  const clamp01=v=>v<0?0:v>1?1:v;
+
+  // the box sits exactly over the canvas, wherever the frame has centred it
+  function placeCropBox(){
+    const f=frameEl.getBoundingClientRect(), c=cv.getBoundingClientRect();
+    cropbox.style.left=(c.left-f.left-frameEl.clientLeft)+'px';   // clientLeft = the frame's own border
+    cropbox.style.top=(c.top-f.top-frameEl.clientTop)+'px';
+    cropbox.style.width=c.width+'px'; cropbox.style.height=c.height+'px';
+  }
+  function drawRect(){
+    croprect.style.left=(rect.x*100)+'%'; croprect.style.top=(rect.y*100)+'%';
+    croprect.style.width=(rect.w*100)+'%'; croprect.style.height=(rect.h*100)+'%';
+    $('#crophint').textContent=`${Math.round(rect.w*W)} × ${Math.round(rect.h*H)} px`;
+  }
+  async function openCrop(){
+    if(busy||activeIndex<0||cropping||!img) return;
+    cropping=true; $('#cropBtn').classList.add('on');
+    stash=queue[activeIndex].crop||null;
+    rect=stash?{...stash}:{x:0,y:0,w:1,h:1};
+    if(stash) await rebuild(null);        // frame against the whole drawing again
+    placeCropBox(); drawRect();
+    cropui.hidden=false; $('#cropbar').hidden=false; frameEl.classList.add('cropping');
+    setStatus('Drag a frame — corners resize, inside moves.');
+  }
+  function closeCrop(){
+    cropping=false; drag=null; stash=null;
+    cropui.hidden=true; $('#cropbar').hidden=true;
+    frameEl.classList.remove('cropping'); $('#cropBtn').classList.remove('on');
+  }
+  async function applyCrop(){
+    if(!cropping) return;
+    const r=rect, whole=r.x<=0.001&&r.y<=0.001&&r.w>=0.999&&r.h>=0.999;
+    const crop=whole?null:{x:clamp01(r.x),y:clamp01(r.y),w:r.w,h:r.h};
+    queue[activeIndex].crop=crop;
+    closeCrop(); await rebuild(crop); setStatus('ready');
+  }
+  async function resetCrop(){
+    if(!cropping) return;
+    if(!queue[activeIndex].crop && (rect.w<0.999||rect.h<0.999)){   // nothing applied yet — just clear the frame
+      rect={x:0,y:0,w:1,h:1}; drawRect(); return;
+    }
+    queue[activeIndex].crop=null; closeCrop(); setStatus('ready');
+  }
+  async function cancelCrop(){
+    if(!cropping) return;
+    const back=stash; closeCrop();
+    if(back) await rebuild(back);
+    setStatus('ready');
+  }
+
+  cropbox.addEventListener('pointerdown',e=>{
+    const b=cropbox.getBoundingClientRect();
+    const px=clamp01((e.clientX-b.left)/b.width), py=clamp01((e.clientY-b.top)/b.height);
+    const h=e.target.dataset && e.target.dataset.h;
+    const whole=rect.w>0.999&&rect.h>0.999;   // nothing to move yet — draw instead
+    if(h)                              drag={mode:'size',h,start:{...rect}};
+    else if(!whole&&croprect.contains(e.target))
+                                       drag={mode:'move',px,py,start:{...rect}};
+    else{ rect={x:px,y:py,w:0,h:0}; drag={mode:'draw',px,py}; drawRect(); }
+    try{ cropbox.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  cropbox.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const b=cropbox.getBoundingClientRect();
+    const px=clamp01((e.clientX-b.left)/b.width), py=clamp01((e.clientY-b.top)/b.height);
+    const st=drag.start;
+    if(drag.mode==='draw'){
+      rect={x:Math.min(px,drag.px), y:Math.min(py,drag.py),
+            w:Math.abs(px-drag.px), h:Math.abs(py-drag.py)};
+    } else if(drag.mode==='move'){
+      rect={...st, x:clamp01(Math.min(st.x+(px-drag.px),1-st.w)),
+                   y:clamp01(Math.min(st.y+(py-drag.py),1-st.h))};
+    } else {
+      // a corner drags against the opposite one, which stays put
+      const l=drag.h[1]==='w'?px:st.x, r2=drag.h[1]==='e'?px:st.x+st.w;
+      const t=drag.h[0]==='n'?py:st.y, b2=drag.h[0]==='s'?py:st.y+st.h;
+      rect={x:Math.min(l,r2), y:Math.min(t,b2), w:Math.abs(r2-l), h:Math.abs(b2-t)};
+    }
+    drawRect();
+  });
+  const endDrag=()=>{
+    if(!drag) return;
+    drag=null;
+    if(rect.w<MINC||rect.h<MINC){ rect={x:0,y:0,w:1,h:1}; drawRect(); }   // a stray tap leaves no sliver
+  };
+  cropbox.addEventListener('pointerup',endDrag);
+  cropbox.addEventListener('pointercancel',endDrag);
+
+  // the canvas moves and resizes as the boil rebuilds — the frame follows it
+  new ResizeObserver(()=>{ if(cropping) placeCropBox(); }).observe(cv);
+  window.addEventListener('resize',()=>{ if(cropping) placeCropBox(); });
+
+  $('#cropBtn').addEventListener('click',openCrop);
+  $('#cropApply').addEventListener('click',applyCrop);
+  $('#cropReset').addEventListener('click',resetCrop);
+  $('#cropCancel').addEventListener('click',cancelCrop);
   function renderTray(){
     const tray=$('#tray');
     if(queue.length===0){ tray.style.display='none'; tray.innerHTML=''; return; }
@@ -677,7 +860,7 @@
     if(queue.length===0){
       activeIndex=-1; stopPlay(); ctx.clearRect(0,0,cv.width,cv.height);
       badge.textContent=''; drop.classList.remove('hide'); frameEl.classList.remove('checker'); enable(false);
-      $('#rotbar').style.display='none';
+      $('#rotbar').style.display='none'; closeCrop();
       renderTray(); setStatus('Load a drawing to begin.'); return;
     }
     if(i<activeIndex){ activeIndex--; renderTray(); }
@@ -730,7 +913,8 @@
   async function recordVideoBlob(onProg){
     const mime=pickMime(); if(!mime) throw new Error('no encoder');
     const stream=cv.captureStream(0), track=stream.getVideoTracks()[0];
-    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000});
+    const bits=Math.min(24_000_000,Math.max(8_000_000,Math.round(W*H*state.fps*0.5)));
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bits});
     const chunks=[]; rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
     const done=new Promise(res=>rec.onstop=res); rec.start();
     const fps=state.fps,total=Math.round(fps*state.dur),stepMs=1000/fps;
@@ -766,11 +950,11 @@
   function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
 
   /* ---------- animated GIF encoder (palette + LZW, no libs) ---------- */
-  function framePixels(bitmap){
-    const off=document.createElement('canvas'); off.width=W; off.height=H;
-    const o=off.getContext('2d'); o.clearRect(0,0,W,H);
-    o.drawImage(bitmap,0,0,W,H);
-    return o.getImageData(0,0,W,H).data;
+  function framePixels(bitmap,gw,gh){
+    const off=document.createElement('canvas'); off.width=gw; off.height=gh;
+    const o=off.getContext('2d'); o.clearRect(0,0,gw,gh);
+    o.drawImage(bitmap,0,0,gw,gh);
+    return o.getImageData(0,0,gw,gh).data;
   }
   // GIF LZW (variable-width) — mirrors the canonical encoder so browsers decode it.
   function gifLZW(minCode,data){
@@ -793,9 +977,10 @@
     if(bits>0) out.push(cur&255);
     return out;
   }
-  function buildGIF(bmps,fps){
+  function buildGIF(bmps,fps,scale=1){
     const transparent=true, CUT=128;
-    const framesRGBA=bmps.map(b=>framePixels(b));
+    const gw=Math.max(1,Math.round(W*scale)), gh=Math.max(1,Math.round(H*scale));
+    const framesRGBA=bmps.map(b=>framePixels(b,gw,gh));
     // build a shared 256-colour table from every frame (5-bit histogram, most-used win)
     const buckets=new Map();
     for(const data of framesRGBA)
@@ -815,7 +1000,7 @@
     const cache=new Map();
     const nearest=(r,g,b)=>{ let best=0,bd=1e9; for(let i=0;i<pal.length;i++){const p=pal[i],dr=r-p[0],dg=g-p[1],db=b-p[2],dd=dr*dr+dg*dg+db*db; if(dd<bd){bd=dd;best=i;}} return best; };
     const indexed=framesRGBA.map(data=>{
-      const arr=new Uint8Array(W*H);
+      const arr=new Uint8Array(gw*gh);
       for(let p=0,i=0;i<data.length;i+=4,p++){
         if(transparent && data[i+3]<CUT){ arr[p]=transIdx; continue; }
         const key=((data[i]>>3)<<10)|((data[i+1]>>3)<<5)|(data[i+2]>>3);
@@ -827,13 +1012,13 @@
     // assemble the file
     const out=[]; const u16=n=>{out.push(n&255,(n>>8)&255);};
     'GIF89a'.split('').forEach(c=>out.push(c.charCodeAt(0)));
-    u16(W); u16(H); out.push(0xF7,0,0);            // global table, 8-bit, 256 entries
+    u16(gw); u16(gh); out.push(0xF7,0,0);          // global table, 8-bit, 256 entries
     for(let i=0;i<768;i++) out.push(table[i]);
     out.push(0x21,0xFF,0x0B); 'NETSCAPE2.0'.split('').forEach(c=>out.push(c.charCodeAt(0))); out.push(3,1,0,0,0); // loop forever
     const delay=Math.max(2,Math.round(100/fps));
     for(const arr of indexed){
       out.push(0x21,0xF9,0x04,(2<<2)|(transIdx>=0?1:0)); u16(delay); out.push(transIdx>=0?transIdx:0,0x00);
-      out.push(0x2C); u16(0); u16(0); u16(W); u16(H); out.push(0x00);
+      out.push(0x2C); u16(0); u16(0); u16(gw); u16(gh); out.push(0x00);
       out.push(8);
       const lzw=gifLZW(8,arr);
       for(let i=0;i<lzw.length;){ const n=Math.min(255,lzw.length-i); out.push(n); for(let j=0;j<n;j++) out.push(lzw[i+j]); i+=n; }
@@ -908,20 +1093,34 @@
     busy=true; stopPlay(); enable(false); $('#subGo').textContent='Sending…';
     setStatus({rec:'Boiling your doodle onto the wall…'}); await sleep(20);
     try{
-      const blob=buildGIF(frames,state.fps);
-      if(blob.size>3_000_000) throw new Error('too big');
+      const {blob,scale}=gifForWall();
+      if(!blob) throw new Error('too big');
       const dataURL=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
       const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({gif:dataURL,name:subName,location:subLoc,handle:subHandle})});
       if(!r.ok) throw new Error('server');
       ping('submit');
       $('#submitOverlay').classList.remove('show');
-      statusEl.innerHTML='Sent! Your doodle is <b>awaiting approval</b> — check the <a href="wall.html">wall</a> soon.';
+      const fitted = scale<1 ? ` (fitted to ${Math.round(W*scale)}×${Math.round(H*scale)} for the wall — your saved copy stays full size)` : '';
+      statusEl.innerHTML=`Sent! Your doodle is <b>awaiting approval</b> — check the <a href="wall.html">wall</a> soon.${fitted}`;
     }catch(e){
-      setStatus(e.message==='too big' ? 'That loop is over 3 MB — try a smaller image or shorter grain.' : 'Could not reach the wall — try again in a minute.');
+      setStatus(e.message==='too big' ? 'Could not get this loop under the wall\u2019s 3 MB — try fewer frames or a tighter crop.' : 'Could not reach the wall — try again in a minute.');
     }
     busy=false; enable(true); $('#subGo').textContent='Send it';
     startPlay();
+  }
+
+  // The wall caps uploads at 3 MB. Rather than refusing a big loop, shrink the
+  // wall's copy until it fits — bytes track pixel count, so one guess usually lands.
+  const WALL_MAX=3_000_000;
+  function gifForWall(){
+    let scale=1, blob=buildGIF(frames,state.fps);
+    for(let tries=0; blob.size>WALL_MAX && tries<4; tries++){
+      scale *= Math.sqrt(WALL_MAX/blob.size)*0.92;   // area ∝ bytes, with a margin
+      if(scale<0.25) return {blob:null,scale};
+      blob=buildGIF(frames,state.fps,scale);
+    }
+    return blob.size>WALL_MAX ? {blob:null,scale} : {blob,scale};
   }
 
   /* ---------- ZIP ---------- */
@@ -955,7 +1154,7 @@
     try{
       for(let i=0;i<n;i++){
         setStatus({rec:`Processing ${i+1}/${n} — ${queue[i].name||'image'}`});
-        await loadIntoGlobals(queue[i].dataURL,queue[i].rot||0);
+        await loadIntoGlobals(queue[i].dataURL,queue[i].rot||0,queue[i].crop||null);
         await generate();
         let blob,ext;
         if(mode==='gif'){ blob=buildGIF(frames,state.fps); ext='.gif'; }
@@ -978,7 +1177,7 @@
     $('#batchMp4').disabled=busy||!many;
   }
   function enable(on){
-    ['#cleanup','#intensity','#grain','#dur','#exportMp4','#exportGif','#wallBtn','#sendBtn','#replace','#rotL','#rotR'].forEach(s=>$(s).disabled=!on);
+    ['#cleanup','#intensity','#grain','#dur','#exportMp4','#exportGif','#wallBtn','#sendBtn','#replace','#rotL','#rotR','#cropBtn'].forEach(s=>$(s).disabled=!on);
     updateBatchUI();
   }
 
@@ -1007,7 +1206,11 @@
   $('#wallBtn').addEventListener('click',()=>{ if(busy||!img)return; $('#submitOverlay').classList.add('show'); $('#subName').focus(); });
   $('#subCancel').addEventListener('click',()=>{ $('#submitOverlay').classList.remove('show'); });
   $('#submitOverlay').addEventListener('click',e=>{ if(e.target===e.currentTarget && !busy) e.currentTarget.classList.remove('show'); });
-  window.addEventListener('keydown',e=>{ if(e.key==='Escape' && !busy) $('#submitOverlay').classList.remove('show'); });
+  window.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||busy) return;
+    if(cropping){ cancelCrop(); return; }
+    $('#submitOverlay').classList.remove('show');
+  });
   /* ---------- about (shared with the wall) ---------- */
   const about=document.getElementById('about');
   document.getElementById('aboutBtn').addEventListener('click',()=>about.showModal());
